@@ -7,7 +7,13 @@ import {
   parseBoardOrder,
 } from "../../lib/appearance";
 import { assetSrc } from "../../lib/assets";
-import { hasImage, hasTodo, isTextNote } from "../../lib/utils";
+import {
+  groupByDate,
+  hasImage,
+  hasTodo,
+  isTextNote,
+  orderNotes,
+} from "../../lib/utils";
 import { useNotesStore } from "../../stores/notesStore";
 import { useSettingsStore } from "../../stores/settingsStore";
 import { useUiStore } from "../../stores/uiStore";
@@ -36,7 +42,7 @@ export function BoardWindow() {
     () => parseBoardOrder(settings[APPEARANCE_KEYS.boardOrder]),
     [settings],
   );
-  const canReorder = filter === "all" && !query.trim();
+  const canReorder = filter !== "trash" && !query.trim();
 
   const backgroundPath = settings[APPEARANCE_KEYS.background] ?? "";
   const backgroundOpacity = clampBackgroundOpacity(
@@ -68,8 +74,31 @@ export function BoardWindow() {
     void load();
   }, [load]);
 
-  const handleReorder = (groupKey: string, ids: string[]) => {
-    const next = { ...orderMap, [groupKey]: ids };
+  const handleReorder = (groupKey: string, visibleIds: string[]) => {
+    const pool = notes.filter(
+      (note) =>
+        !note.isArchived &&
+        (groupKey === "pinned" ? note.isPinned : !note.isPinned),
+    );
+    const groupNotes =
+      groupKey === "pinned"
+        ? pool
+        : (groupByDate(pool).find((group) => group.key === groupKey)?.notes ?? []);
+    const fullIds = orderNotes(groupNotes, orderMap[groupKey]).map(
+      (note) => note.id,
+    );
+
+    let merged = visibleIds;
+    if (fullIds.length > 0) {
+      const queue = [...visibleIds];
+      const visible = new Set(visibleIds);
+      merged = fullIds.map((id) => (visible.has(id) ? (queue.shift() ?? id) : id));
+      for (const id of queue) {
+        if (id) merged.push(id);
+      }
+    }
+
+    const next = { ...orderMap, [groupKey]: merged };
     void updateSetting(APPEARANCE_KEYS.boardOrder, JSON.stringify(next));
   };
 

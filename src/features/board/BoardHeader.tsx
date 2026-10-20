@@ -34,7 +34,7 @@ export function BoardHeader({ count, searchRef, onOpenSettings }: BoardHeaderPro
         <p className="mt-1.5 text-[11px] tracking-[0.02em] text-muted/70">
           {query
             ? `在 “${query}” 中找到了 ${count} 条`
-            : filter === "all"
+            : filter !== "trash"
               ? `${subtitle} · ${count} 条 · 拖拽卡片可排序`
               : `${subtitle} · ${count} 条`}
         </p>

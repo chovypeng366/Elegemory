@@ -98,9 +98,8 @@ function TimelineGroup({
 
   const handleDragStart = (event: React.DragEvent<HTMLDivElement>) => {
     if (!canReorder) return;
-    const handle = (event.target as HTMLElement).closest("[data-drag-handle]");
     const card = findCard(event);
-    if (!handle || !card) return;
+    if (!card) return;
 
     const noteId = card.dataset.noteId;
     if (!noteId) return;

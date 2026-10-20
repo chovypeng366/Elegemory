@@ -493,6 +493,14 @@ html[data-theme="clay"] {
   touch-action: none;
 }
 
+.note-tilt[draggable="true"] {
+  cursor: grab;
+}
+
+.note-tilt[draggable="true"]:active {
+  cursor: grabbing;
+}
+
 article.is-dragging {
   opacity: 0.45 !important;
   transform: scale(0.985);

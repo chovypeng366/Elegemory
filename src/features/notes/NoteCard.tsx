@@ -178,7 +178,11 @@ export function NoteCard({ note, index, canReorder = false }: NoteCardProps) {
       data-note-id={note.id}
       className="focus-ring group relative cursor-pointer rounded-[18px]"
     >
-      <div className="note-tilt" style={tiltStyle(note.id)}>
+      <div
+        className={cn("note-tilt", canReorder && "cursor-grab active:cursor-grabbing")}
+        style={tiltStyle(note.id)}
+        draggable={canReorder}
+      >
         {content}
       </div>
 
@@ -190,7 +194,7 @@ export function NoteCard({ note, index, canReorder = false }: NoteCardProps) {
           aria-label="拖拽排序"
           title="拖拽排序"
           onClick={(event) => event.stopPropagation()}
-          className="absolute left-2 top-2 z-20 flex size-7 cursor-grab items-center justify-center rounded-lg border border-line/70 bg-photo/85 text-muted/65 opacity-0 shadow-sm backdrop-blur-sm transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100 active:cursor-grabbing"
+          className="absolute left-2 top-2 z-20 flex size-7 cursor-grab items-center justify-center rounded-lg border border-line/70 bg-photo/85 text-muted/65 opacity-40 shadow-sm backdrop-blur-sm transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100 active:cursor-grabbing"
         >
           <GripVertical size={13} />
         </span>
