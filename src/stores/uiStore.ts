@@ -31,12 +31,14 @@ interface PendingConfirm {
 interface UiState {
   filter: BoardFilter;
   query: string;
+  dateFilter: string;
   selectedNoteId: string | null;
   settingsOpen: boolean;
   toasts: Toast[];
   pendingConfirm: PendingConfirm | null;
   setFilter: (filter: BoardFilter) => void;
   setQuery: (query: string) => void;
+  setDateFilter: (date: string) => void;
   openNote: (id: string) => void;
   closeNote: () => void;
   setSettingsOpen: (open: boolean) => void;
@@ -49,6 +51,7 @@ interface UiState {
 export const useUiStore = create<UiState>((set, get) => ({
   filter: "all",
   query: "",
+  dateFilter: "",
   selectedNoteId: null,
   settingsOpen: false,
   toasts: [],
@@ -56,6 +59,7 @@ export const useUiStore = create<UiState>((set, get) => ({
 
   setFilter: (filter) => set({ filter }),
   setQuery: (query) => set({ query }),
+  setDateFilter: (dateFilter) => set({ dateFilter }),
   openNote: (id) => set({ selectedNoteId: id }),
   closeNote: () => set({ selectedNoteId: null }),
   setSettingsOpen: (open) => set({ settingsOpen: open }),

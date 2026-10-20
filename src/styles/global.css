@@ -530,6 +530,19 @@ body,
     border-color 0.35s ease;
 }
 
+input[type="date"] {
+  color-scheme: light;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.45;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 0.75;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

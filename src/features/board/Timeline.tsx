@@ -2,7 +2,7 @@ import { useRef } from "react";
 import type { ReactNode } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { Pin, Search, Sparkles } from "lucide-react";
-import { groupByDate, orderNotes } from "../../lib/utils";
+import { groupByDate, orderNotes, formatDateKeyLabel } from "../../lib/utils";
 import { showCapture } from "../../services/system";
 import { useUiStore } from "../../stores/uiStore";
 import type { Note } from "../../types";
@@ -203,43 +203,57 @@ function TimelineGroup({
 function BoardEmptyState() {
   const query = useUiStore((state) => state.query);
   const filter = useUiStore((state) => state.filter);
+  const dateFilter = useUiStore((state) => state.dateFilter);
   const setQuery = useUiStore((state) => state.setQuery);
   const setFilter = useUiStore((state) => state.setFilter);
+  const setDateFilter = useUiStore((state) => state.setDateFilter);
   const pushToast = useUiStore((state) => state.pushToast);
+  const dateLabel = dateFilter ? formatDateKeyLabel(dateFilter) : "";
+
   const message = query
-    ? {
-        title: "没有找到相似的记录",
-        body: "换一个关键词试试，搜索会匹配标题和全部文字内容。",
-      }
-    : filter === "trash"
+    ? dateFilter
       ? {
-          title: "回收站是空的",
-          body: "删除的记录会先来到这里，你有机会把它们找回来。",
+          title: "这一天没有找到相似的记录",
+          body: `${dateLabel} 没有匹配「${query}」的内容，换个日期或关键词试试。`,
         }
-      : filter === "favorites"
+      : {
+          title: "没有找到相似的记录",
+          body: "换一个关键词试试，搜索会匹配标题和全部文字内容。",
+        }
+    : dateFilter
+      ? {
+          title: "这一天还没有记录",
+          body: `${dateLabel} 的纸面还是空的，换一天看看，或清除日期筛选。`,
+        }
+      : filter === "trash"
         ? {
-            title: "还没有收藏",
-            body: "把舍不得弄丢的记录收藏起来，它们会安静地待在这里。",
+            title: "回收站是空的",
+            body: "删除的记录会先来到这里，你有机会把它们找回来。",
           }
-        : filter === "text"
+        : filter === "favorites"
           ? {
-              title: "还没有纯文字记录",
-              body: "在速记窗口直接输入文字并收好，就会出现在这里。",
+              title: "还没有收藏",
+              body: "把舍不得弄丢的记录收藏起来，它们会安静地待在这里。",
             }
-          : filter === "todos"
+          : filter === "text"
             ? {
-                title: "还没有待办",
-                body: "在速记窗口切换到「待办」，一行写一件事，回车就收好。",
+                title: "还没有纯文字记录",
+                body: "在速记窗口直接输入文字并收好，就会出现在这里。",
               }
-            : filter === "images"
+            : filter === "todos"
               ? {
-                  title: "还没有图片记录",
-                  body: "截图后按 Ctrl + V 粘贴，或把 PNG / JPEG 图片拖进速记窗口。",
+                  title: "还没有待办",
+                  body: "在速记窗口切换到「待办」，一行写一件事，回车就收好。",
                 }
-              : {
-                  title: "纸面还很干净",
-                  body: "从一个念头、一段文字或一张截图开始。记录不需要创建文档。",
-                };
+              : filter === "images"
+                ? {
+                    title: "还没有图片记录",
+                    body: "截图后按 Ctrl + V 粘贴，或把 PNG / JPEG 图片拖进速记窗口。",
+                  }
+                : {
+                    title: "纸面还很干净",
+                    body: "从一个念头、一段文字或一张截图开始。记录不需要创建文档。",
+                  };
 
   return (
     <div className="mx-auto flex h-full max-w-[420px] flex-col items-center justify-center pb-24 text-center">
@@ -259,8 +273,8 @@ function BoardEmptyState() {
       </h2>
       <p className="mt-2 text-[12px] leading-6 text-muted/80">{message.body}</p>
 
-      <div className="mt-6 flex items-center gap-2">
-        {query ? (
+      <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
+        {query && (
           <button
             type="button"
             onClick={() => setQuery("")}
@@ -268,7 +282,17 @@ function BoardEmptyState() {
           >
             清空搜索
           </button>
-        ) : filter !== "all" ? (
+        )}
+        {dateFilter && (
+          <button
+            type="button"
+            onClick={() => setDateFilter("")}
+            className="ghost-button focus-ring h-9 rounded-lg px-4 text-[12px]"
+          >
+            清除日期
+          </button>
+        )}
+        {!query && !dateFilter && filter !== "all" && (
           <button
             type="button"
             onClick={() => setFilter("all")}
@@ -276,7 +300,7 @@ function BoardEmptyState() {
           >
             回到全部记忆
           </button>
-        ) : null}
+        )}
         <button
           type="button"
           onClick={() => {

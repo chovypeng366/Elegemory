@@ -17,6 +17,7 @@ import {
   hasImage,
   hasTodo,
   isTextNote,
+  matchesDateFilter,
   orderNotes,
 } from "../../lib/utils";
 import { useNotesStore } from "../../stores/notesStore";
@@ -39,6 +40,7 @@ export function BoardWindow() {
   const load = useNotesStore((state) => state.load);
   const filter = useUiStore((state) => state.filter);
   const query = useUiStore((state) => state.query);
+  const dateFilter = useUiStore((state) => state.dateFilter);
   const setSettingsOpen = useUiStore((state) => state.setSettingsOpen);
   const settings = useSettingsStore((state) => state.settings);
   const updateSetting = useSettingsStore((state) => state.updateSetting);
@@ -50,7 +52,8 @@ export function BoardWindow() {
     () => parseBoardOrder(settings[APPEARANCE_KEYS.boardOrder]),
     [settings],
   );
-  const canReorder = filter !== "trash" && !query.trim();
+  const canReorder =
+    filter !== "trash" && !query.trim() && !dateFilter;
 
   const backgroundPath = settings[APPEARANCE_KEYS.background] ?? "";
   const backgroundOpacity = clampBackgroundOpacity(
@@ -75,8 +78,9 @@ export function BoardWindow() {
           .join(" ")
           .toLowerCase();
         return haystack.includes(keyword);
-      });
-  }, [notes, filter, query]);
+      })
+      .filter((note) => matchesDateFilter(note.createdAt, dateFilter));
+  }, [notes, filter, query, dateFilter]);
 
   useEffect(() => {
     void load();
@@ -178,6 +182,7 @@ export function BoardWindow() {
           return;
         }
         if (ui.query) ui.setQuery("");
+        if (ui.dateFilter) ui.setDateFilter("");
       }
     };
 

@@ -53,6 +53,29 @@ export function formatShortTimestamp(timestamp: number): string {
   return formatDateLabel(timestamp);
 }
 
+export function localDateKey(timestamp: number): string {
+  const date = new Date(timestamp);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+export function formatDateKeyLabel(value: string): string {
+  const parts = value.split("-").map(Number);
+  if (parts.length !== 3 || parts.some((part) => !Number.isFinite(part))) {
+    return value;
+  }
+  return `${parts[0]}年${parts[1]}月${parts[2]}日`;
+}
+
+export function matchesDateFilter(
+  timestamp: number,
+  dateFilter: string,
+): boolean {
+  return !dateFilter || localDateKey(timestamp) === dateFilter;
+}
+
 export interface TimelineGroup {
   key: string;
   label: string;
@@ -76,19 +99,14 @@ export function groupByDate(notes: Note[]): TimelineGroup[] {
     return group;
   };
 
-  const dateKey = (timestamp: number) => {
-    const date = new Date(timestamp);
-    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-  };
-
   for (const note of notes) {
     const created = note.createdAt;
     if (created >= todayStart) {
-      bucket(`day:${dateKey(todayStart)}`, "今天").notes.push(note);
+      bucket(`day:${localDateKey(todayStart)}`, "今天").notes.push(note);
     } else if (created >= yesterdayStart) {
-      bucket(`day:${dateKey(yesterdayStart)}`, "昨天").notes.push(note);
+      bucket(`day:${localDateKey(yesterdayStart)}`, "昨天").notes.push(note);
     } else if (created >= weekStart) {
-      bucket(`week:${dateKey(weekStart)}`, "最近一周").notes.push(note);
+      bucket(`week:${localDateKey(weekStart)}`, "最近一周").notes.push(note);
     } else {
       const date = new Date(created);
       const key = `month:${date.getFullYear()}-${date.getMonth() + 1}`;
