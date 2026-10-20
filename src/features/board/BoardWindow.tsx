@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { onNotesChanged, onWindowFocus, showCapture } from "../../services/system";
 import {
   APPEARANCE_KEYS,
@@ -7,6 +8,11 @@ import {
   parseBoardOrder,
 } from "../../lib/appearance";
 import { assetSrc } from "../../lib/assets";
+import {
+  ENCOURAGEMENT_KEYS,
+  highWaterMark,
+  resolveEncouragement,
+} from "../../lib/encouragement";
 import {
   groupByDate,
   hasImage,
@@ -35,6 +41,7 @@ export function BoardWindow() {
   const setSettingsOpen = useUiStore((state) => state.setSettingsOpen);
   const settings = useSettingsStore((state) => state.settings);
   const updateSetting = useSettingsStore((state) => state.updateSetting);
+  const reducedMotion = useReducedMotion();
 
   const searchRef = useRef<HTMLInputElement>(null);
 
@@ -48,6 +55,35 @@ export function BoardWindow() {
   const backgroundOpacity = clampBackgroundOpacity(
     Number(settings[APPEARANCE_KEYS.backgroundOpacity] ?? DEFAULT_BACKGROUND_OPACITY),
   );
+
+  const [hour, setHour] = useState(() => new Date().getHours());
+
+  const noteCount = useMemo(
+    () => notes.filter((note) => !note.isArchived).length,
+    [notes],
+  );
+  const todoCount = useMemo(
+    () =>
+      notes
+        .filter((note) => !note.isArchived)
+        .reduce(
+          (total, note) =>
+            total + note.blocks.filter((block) => block.blockType === "todo").length,
+          0,
+        ),
+    [notes],
+  );
+
+  const noteMark = highWaterMark(
+    settings[ENCOURAGEMENT_KEYS.notes],
+    noteCount,
+  );
+  const todoMark = highWaterMark(
+    settings[ENCOURAGEMENT_KEYS.todos],
+    todoCount,
+  );
+
+  const encouragement = resolveEncouragement(noteMark, todoMark, hour);
 
   const filtered = useMemo(() => {
     const keyword = query.trim().toLowerCase();
@@ -73,6 +109,23 @@ export function BoardWindow() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    if (noteCount > Number(settings[ENCOURAGEMENT_KEYS.notes] ?? 0)) {
+      void updateSetting(ENCOURAGEMENT_KEYS.notes, String(noteCount));
+    }
+  }, [noteCount, settings, updateSetting]);
+
+  useEffect(() => {
+    if (todoCount > Number(settings[ENCOURAGEMENT_KEYS.todos] ?? 0)) {
+      void updateSetting(ENCOURAGEMENT_KEYS.todos, String(todoCount));
+    }
+  }, [todoCount, settings, updateSetting]);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setHour(new Date().getHours()), 60_000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   const handleReorder = (groupKey: string, visibleIds: string[]) => {
     const pool = notes.filter(
@@ -192,7 +245,7 @@ export function BoardWindow() {
             searchRef={searchRef}
             onOpenSettings={openSettings}
           />
-          <div className="min-h-0 flex-1 overflow-y-auto px-8 pb-14">
+          <div className="min-h-0 flex-1 overflow-y-auto px-8 pb-10">
             {loading && !loaded ? (
               <TimelineSkeleton />
             ) : (
@@ -206,6 +259,24 @@ export function BoardWindow() {
           </div>
         </main>
       </div>
+
+      <AnimatePresence initial={false} mode="wait">
+        {encouragement && (
+          <motion.footer
+            key={encouragement}
+            initial={reducedMotion ? false : { opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={reducedMotion ? undefined : { opacity: 0, y: 4 }}
+            transition={{ duration: 0.32, ease: "easeOut" }}
+            className="relative z-10 flex shrink-0 items-center justify-center gap-2 border-t border-line/60 bg-canvas/45 px-6 py-2.5 backdrop-blur-[2px]"
+          >
+            <span aria-hidden="true" className="size-1.5 rounded-full bg-accent/70" />
+            <span className="text-[11px] tracking-[0.03em] text-muted/80">
+              {encouragement}
+            </span>
+          </motion.footer>
+        )}
+      </AnimatePresence>
 
       <NoteDetailDrawer />
       <SettingsDialog />
