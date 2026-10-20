@@ -64,6 +64,8 @@ pub fn run() {
             commands::notes::delete_block,
             commands::notes::toggle_block_completed,
             commands::notes::delete_note,
+            commands::whisper::record_whisper,
+            commands::whisper::list_whisper_history,
             commands::assets::save_image_asset,
             commands::assets::import_image_path,
             commands::settings::get_settings,

@@ -3,9 +3,11 @@ import type {
   AppInfo,
   Asset,
   CreateNoteInput,
+  CreateNoteResult,
   NewBlockInput,
   Note,
 } from "../types";
+import type { WhisperHistoryEntry } from "../lib/whisperEngine";
 import { isTauri } from "./env";
 import { mockBackend } from "./mock";
 
@@ -16,10 +18,28 @@ export const api = {
     return isTauri() ? invoke<Note[]>("list_notes") : mockBackend.listNotes();
   },
 
-  createNote(input: CreateNoteInput): Promise<Note> {
+  createNote(input: CreateNoteInput): Promise<CreateNoteResult> {
     return isTauri()
-      ? invoke<Note>("create_note", { input })
+      ? invoke<CreateNoteResult>("create_note", { input })
       : mockBackend.createNote(input);
+  },
+
+  recordWhisper(input: {
+    phraseId: string;
+    category: string;
+    noteType: "note" | "todo";
+    shownAt: number;
+    workdayKey: string;
+  }): Promise<void> {
+    return isTauri()
+      ? invoke<void>("record_whisper", { input })
+      : mockBackend.recordWhisper(input);
+  },
+
+  listWhisperHistory(since: number): Promise<WhisperHistoryEntry[]> {
+    return isTauri()
+      ? invoke<WhisperHistoryEntry[]>("list_whisper_history", { since })
+      : mockBackend.listWhisperHistory(since);
   },
 
   setNoteTitle(id: string, title: string): Promise<Note> {

@@ -2,14 +2,53 @@ import type {
   AppInfo,
   Asset,
   CreateNoteInput,
+  CreateNoteResult,
   Note,
   NoteBlock,
   NoteType,
   NewBlockInput,
+  WhisperFeedback,
 } from "../types";
+import type { WhisperHistoryEntry } from "../lib/whisperEngine";
+import { previousWorkdayKeyFor, workdayKeyFor } from "../lib/whisperTime";
 
 const STORAGE_KEY = "elegemory.dev.notes.v1";
 const SETTINGS_KEY = "elegemory.dev.settings.v1";
+const WHISPER_STATS_KEY = "elegemory.dev.whisper.stats.v1";
+const WHISPER_HISTORY_KEY = "elegemory.dev.whisper.history.v1";
+const MOCK_MOODS = ["Warm", "Poetic", "Playful", "Calm", "Cozy", "Reflective"];
+
+interface MockDailyStats {
+  note_created_count: number;
+  todo_created_count: number;
+  daily_mood: string;
+  updated_at: number;
+}
+
+function readWhisperStats(): Record<string, MockDailyStats> {
+  try {
+    return JSON.parse(localStorage.getItem(WHISPER_STATS_KEY) || "{}") as Record<
+      string,
+      MockDailyStats
+    >;
+  } catch {
+    return {};
+  }
+}
+
+function writeWhisperStats(stats: Record<string, MockDailyStats>) {
+  localStorage.setItem(WHISPER_STATS_KEY, JSON.stringify(stats));
+}
+
+function readWhisperHistory(): WhisperHistoryEntry[] {
+  try {
+    return JSON.parse(
+      localStorage.getItem(WHISPER_HISTORY_KEY) || "[]",
+    ) as WhisperHistoryEntry[];
+  } catch {
+    return [];
+  }
+}
 
 function uuid(): string {
   return crypto.randomUUID();
@@ -205,7 +244,7 @@ export const mockBackend = {
     return clone(load());
   },
 
-  async createNote(input: CreateNoteInput): Promise<Note> {
+  async createNote(input: CreateNoteInput): Promise<CreateNoteResult> {
     const notes = load();
     const noteId = uuid();
     const filtered = input.blocks.filter(
@@ -238,7 +277,71 @@ export const mockBackend = {
       blocks,
     };
     save([note, ...notes]);
-    return clone(note);
+
+    let kind: "note" | "todo" | null = null;
+    if (input.feedbackKind === "silent") {
+      kind = null;
+    } else if (input.feedbackKind === "todo") {
+      kind = "todo";
+    } else if (input.feedbackKind === "note") {
+      kind = "note";
+    } else {
+      kind = note.type === "todo" ? "todo" : "note";
+    }
+
+    let whisper: WhisperFeedback | null = null;
+    if (kind) {
+      const stats = readWhisperStats();
+      const workdayKey = workdayKeyFor();
+      let row = stats[workdayKey];
+      if (!row) {
+        const previous = stats[previousWorkdayKeyFor()];
+        const candidates = MOCK_MOODS.filter(
+          (mood) => mood !== previous?.daily_mood,
+        );
+        const pool = candidates.length ? candidates : MOCK_MOODS;
+        row = {
+          note_created_count: 0,
+          todo_created_count: 0,
+          daily_mood: pool[Math.floor(Math.random() * pool.length)],
+          updated_at: now,
+        };
+        stats[workdayKey] = row;
+      }
+      if (kind === "todo") row.todo_created_count += 1;
+      else row.note_created_count += 1;
+      row.updated_at = now;
+      writeWhisperStats(stats);
+
+      const count =
+        kind === "todo" ? row.todo_created_count : row.note_created_count;
+      whisper = {
+        workdayKey,
+        noteCreatedCount: row.note_created_count,
+        todoCreatedCount: row.todo_created_count,
+        dailyMood: row.daily_mood,
+        kind,
+        isTenth: count === 10,
+      };
+    }
+
+    return { note: clone(note), whisper };
+  },
+
+  async recordWhisper(input: {
+    phraseId: string;
+    category: string;
+    noteType: "note" | "todo";
+    shownAt: number;
+    workdayKey: string;
+  }): Promise<void> {
+    const history = readWhisperHistory();
+    history.push({ id: uuid(), ...input });
+    localStorage.setItem(WHISPER_HISTORY_KEY, JSON.stringify(history));
+  },
+
+  async listWhisperHistory(since: number): Promise<WhisperHistoryEntry[]> {
+    return clone(readWhisperHistory().filter((entry) => entry.shownAt >= since));
   },
 
   async setNoteTitle(id: string, title: string): Promise<Note> {
@@ -392,7 +495,7 @@ export const mockBackend = {
   async getAppInfo(): Promise<AppInfo> {
     const notes = load();
     return {
-      version: "0.1.0 · 浏览器预览",
+      version: "0.2.1 · 浏览器预览",
       dataDir: "Tauri 模式下为系统应用数据目录",
       dbPath: "Tauri 模式下为 elegemory.db",
       noteCount: notes.length,

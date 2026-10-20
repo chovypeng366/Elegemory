@@ -9,7 +9,10 @@ use tauri::{AppHandle, Manager};
 
 use crate::models::{Asset, Note, NoteBlock};
 
-const MIGRATIONS: &[(i64, &str)] = &[(1, include_str!("../migrations/001_init.sql"))];
+const MIGRATIONS: &[(i64, &str)] = &[
+    (1, include_str!("../migrations/001_init.sql")),
+    (2, include_str!("../migrations/002_whisper.sql")),
+];
 
 pub struct Db {
     conn: Mutex<Connection>,

@@ -66,7 +66,8 @@ export const useNotesStore = create<NotesState>((set, get) => {
 
     async createNote(input) {
       try {
-        const note = await api.createNote(input);
+        const result = await api.createNote(input);
+        const note = result.note;
         set((state) => ({ notes: upsert(state.notes, note), error: null }));
         return note;
       } catch (error) {

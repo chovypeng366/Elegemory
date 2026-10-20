@@ -25,6 +25,7 @@ import {
   onImageDrop,
   resizeCaptureWindow,
 } from "../../services/system";
+import { triggerWhisper } from "../../services/whisperService";
 import type {
   CaptureDraft,
   CaptureMode,
@@ -249,8 +250,12 @@ export function CaptureWindow() {
         return;
       }
 
-      await api.createNote({ blocks });
+      const result = await api.createNote({
+        blocks,
+        feedbackKind: mode,
+      });
       setSaved(true);
+      void triggerWhisper(result.whisper);
       void emitNotesChanged().catch(() => undefined);
 
       window.setTimeout(() => {

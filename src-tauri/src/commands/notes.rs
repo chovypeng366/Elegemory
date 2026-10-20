@@ -4,8 +4,9 @@ use rusqlite::{params, Connection, OptionalExtension};
 use tauri::State;
 use uuid::Uuid;
 
+use crate::commands::whisper;
 use crate::db::{self, Db};
-use crate::models::{CreateNoteInput, NewBlock, Note};
+use crate::models::{CreateNoteInput, CreateNoteResult, NewBlock, Note};
 
 fn validate_block(block: &NewBlock) -> Result<(), String> {
     match block.block_type.as_str() {
@@ -169,8 +170,16 @@ pub fn list_notes(state: State<'_, Db>) -> Result<Vec<Note>, String> {
 }
 
 #[tauri::command]
-pub fn create_note(state: State<'_, Db>, input: CreateNoteInput) -> Result<Note, String> {
-    let mut blocks = input.blocks;
+pub fn create_note(
+    state: State<'_, Db>,
+    input: CreateNoteInput,
+) -> Result<CreateNoteResult, String> {
+    let CreateNoteInput {
+        title: input_title,
+        blocks: input_blocks,
+        feedback_kind,
+    } = input;
+    let mut blocks = input_blocks;
     for block in &mut blocks {
         if block.block_type == "image" {
             block.content.clear();
@@ -187,16 +196,22 @@ pub fn create_note(state: State<'_, Db>, input: CreateNoteInput) -> Result<Note,
     }
 
     let note_type = derive_type(&blocks);
-    let title = input
-        .title
+    let title = input_title
         .as_deref()
         .map(str::trim)
         .filter(|value| !value.is_empty())
         .map(str::to_string)
         .unwrap_or_else(|| derive_title(&blocks));
+    let feedback_kind = match feedback_kind.as_deref() {
+        Some("silent") => None,
+        Some("todo") => Some("todo".to_string()),
+        Some("note") => Some("note".to_string()),
+        _ => Some(if note_type == "todo" { "todo" } else { "note" }.to_string()),
+    };
 
     let note_id = Uuid::new_v4().to_string();
     let now = db::now_ms();
+    let local_now = chrono::Local::now().naive_local();
     let mut conn = state.conn();
     let tx = conn.transaction().map_err(db::error)?;
 
@@ -212,8 +227,14 @@ pub fn create_note(state: State<'_, Db>, input: CreateNoteInput) -> Result<Note,
         insert_block(&tx, &note_id, block, index as i64)?;
     }
 
+    let whisper = match feedback_kind {
+        Some(kind) => Some(whisper::register_creation(&tx, &kind, local_now, now)?),
+        None => None,
+    };
+
     tx.commit().map_err(db::error)?;
-    db::load_note(&conn, &state.data_dir, &note_id)
+    let note = db::load_note(&conn, &state.data_dir, &note_id)?;
+    Ok(CreateNoteResult { note, whisper })
 }
 
 #[tauri::command]

@@ -39,6 +39,7 @@ import {
   useSettingsStore,
 } from "../../stores/settingsStore";
 import { useUiStore } from "../../stores/uiStore";
+import { WhisperSettings } from "./WhisperSettings";
 
 export function SettingsDialog() {
   const open = useUiStore((state) => state.settingsOpen);
@@ -428,6 +429,8 @@ export function SettingsDialog() {
                   </div>
                 </div>
               </Section>
+
+              <WhisperSettings />
 
               <Section icon={<Bot size={14} />} title="AI 能力（预留）">
                 <div className="rounded-xl border border-dashed border-line bg-canvas/30 px-3.5 py-3">

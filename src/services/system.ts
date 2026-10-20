@@ -2,11 +2,13 @@ import { invoke } from "@tauri-apps/api/core";
 import { emit, listen } from "@tauri-apps/api/event";
 import { LogicalSize } from "@tauri-apps/api/dpi";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import type { WhisperEventPayload } from "../types";
 import { isTauri } from "./env";
 
 export type Unlisten = () => void;
 
 const LOCAL_EVENT = "elegemory:notes-changed";
+const WHISPER_CHANNEL = "elegemory-whisper";
 
 export async function hideCurrentWindow(): Promise<void> {
   if (!isTauri()) return;
@@ -70,6 +72,40 @@ export async function onWindowFocus(handler: () => void): Promise<Unlisten> {
   return getCurrentWindow().onFocusChanged((event) => {
     if (event.payload) handler();
   });
+}
+
+export async function emitWhisper(payload: WhisperEventPayload): Promise<void> {
+  if (isTauri()) {
+    await emit("whisper", payload);
+    return;
+  }
+  if (typeof BroadcastChannel !== "undefined") {
+    const channel = new BroadcastChannel(WHISPER_CHANNEL);
+    channel.postMessage(payload);
+    channel.close();
+    return;
+  }
+  window.dispatchEvent(new CustomEvent(WHISPER_CHANNEL, { detail: payload }));
+}
+
+export async function onWhisper(
+  handler: (payload: WhisperEventPayload) => void,
+): Promise<Unlisten> {
+  if (isTauri()) {
+    return listen<WhisperEventPayload>("whisper", (event) => {
+      handler(event.payload);
+    });
+  }
+  if (typeof BroadcastChannel !== "undefined") {
+    const channel = new BroadcastChannel(WHISPER_CHANNEL);
+    channel.onmessage = (event) => handler(event.data as WhisperEventPayload);
+    return () => channel.close();
+  }
+  const localHandler = (event: Event) => {
+    handler((event as CustomEvent<WhisperEventPayload>).detail);
+  };
+  window.addEventListener(WHISPER_CHANNEL, localHandler);
+  return () => window.removeEventListener(WHISPER_CHANNEL, localHandler);
 }
 
 export async function onCaptureShown(handler: () => void): Promise<Unlisten> {

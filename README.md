@@ -95,9 +95,24 @@ npm run tauri build
 - 悬停卡片可编辑、复制、收藏、置顶、移入回收站。
 - 详情抽屉支持修改标题、编辑文字、勾选待办、添加文字/待办、复制文字、复制原图。
 - 删除记录进入回收站，可恢复或永久删除；永久删除会同时清理无引用的图片文件。
-- 白板底部会显示里程碑鼓励语：笔记或待办达到 1–5 条时逐级更新，达到 10 条显示「这里是地狱吗」；之后即使删除记录，提示也不会回退。
-- 凌晨 1–4 点打开应用时，底部会改为显示关心作息的提示，优先于里程碑文案。
+- 白板底部提供 **Memory Whisper（记忆低语）**：每次新增笔记或待办后，出现一句 6–18 字的情绪短句，3 秒后淡出，不堆叠；文案从本地词库按洗牌袋算法抽取，并按工作日记录历史，尽量避免当天和最近 7 天重复。
+- 低语按工作日（凌晨 05:00 切换）分别累计笔记和待办：新增 1–5 条为鼓励，6–9 条为关怀，第 10 条为彩蛋，11 条以后为陪伴；编辑、删除、收藏、勾选完成都不会减少累计次数。
+- 第 10 条第一次达成时固定显示「这里是地狱吗」，之后可以随机抽取彩蛋或固定原句；凌晨 01:00–04:59 优先显示深夜关怀，但第 10 条彩蛋优先于深夜关怀。
+- 每日会抽取一个轻量心情主题（温柔 / 诗意 / 俏皮 / 平静 / 生活感 / 轻思考），只影响文案权重；秋季、冬季等季节文案只会偶尔出现。
+- 低语历史与当日计数保存在 SQLite，重启后可继续去重；批量导入可标记为静默，不触发提示。
 - 关闭主窗口只收起到托盘，不退出；托盘菜单可打开白板、快速记录或完全退出。
+
+### Memory Whisper（记忆低语）
+
+- 独立词库 `src/lib/whisperLibrary.ts` 提供 271 条简体中文文案，覆盖鼓励、关怀、彩蛋、深夜、季节、陪伴等分类，每条都有唯一 ID、语气标签与可选季节标签。
+- 工作日以本地时间凌晨 05:00 为界。笔记和待办分别计数：1–5 条鼓励，6–9 条关怀，第 10 条彩蛋，11 条以后陪伴。
+- 第 10 条第一次达成固定显示「这里是地狱吗」；之后可在设置中选择随机彩蛋或固定原句。
+- 凌晨 01:00–04:59 优先显示深夜关怀；第 10 条彩蛋优先级高于深夜关怀。
+- `src/lib/whisperEngine.ts` 使用洗牌袋和加权抽取：同一工作日不重复、尽可能避开最近 7 天、避免连续相似语气，候选耗尽时自动重洗。
+- 每日心情主题（Warm / Poetic / Playful / Calm / Cozy / Reflective）只影响文案权重；季节文案偶尔出现，不会强行套用。
+- `daily_feedback_stats` 保存每日计数与心情，`whisper_history` 保存每次选择；历史与计数都在 SQLite，重启后继续去重。
+- `WhisperBar` 在主界面底部逐条显示，淡入 180ms、停留 3 秒、淡出 250ms，不堆叠、不弹窗、不发声。
+- 编辑、删除、收藏、勾选完成不会改变累计创建次数；关闭低语也不会影响笔记创建。
 
 ### 数据与容错
 
@@ -115,6 +130,7 @@ npm run tauri build
 - 纸张主题：暖纸、雾蓝、沙丘、陶土。
 - 磁扣颜色：青瓷、赤陶、黄铜、墨蓝、鼠尾草、豆沙、石墨。
 - 自定义背景图片：支持 PNG / JPEG / WebP，可调节背景透明度；图片保存在本机。
+- Memory Whisper：开启/关闭低语、语气偏好（温柔 / 俏皮 / 混合）、深夜关怀、季节与节日文案、第 10 条彩蛋重复策略、增强动效。
 - 查看数据目录、记录/图片/回收站数量。
 - 查看版本、退出应用。
 - AI 能力已预留接口，当前未启用。
@@ -163,9 +179,21 @@ Elegemory/
 - `notes`：`id / type / title / created_at / updated_at / is_pinned / is_favorite / is_archived`
 - `note_blocks`：`id / note_id / block_type / content / asset_id / sort_order / is_completed`
 - `assets`：`id / relative_path / mime_type / width / height / size_bytes / created_at`
-- `settings`：键值配置（快捷键等非敏感设置）
+- `settings`：键值配置（快捷键、外观与 Memory Whisper 偏好等非敏感设置）
+- `daily_feedback_stats`：`workday_key / note_created_count / todo_created_count / daily_mood / updated_at`
+- `whisper_history`：`id / phrase_id / category / note_type / shown_at / workday_key`
 
-记录与图片分开存储；数据库不保存 Base64。时间统一使用 Unix 毫秒时间戳，界面按本地时区分组。
+记录与图片分开存储；数据库不保存 Base64。时间统一使用 Unix 毫秒时间戳，界面按本地时区分组。Memory Whisper 的词库与引擎分别位于 `src/lib/whisperLibrary.ts` 和 `src/lib/whisperEngine.ts`，历史与计数由 Rust 命令写入 SQLite。
+
+运行单元测试：
+
+```bash
+npm test
+```
+
+```bash
+cd src-tauri && cargo test
+```
 
 ## 实际使用流程
 

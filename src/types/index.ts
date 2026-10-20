@@ -1,3 +1,5 @@
+import type { WhisperPhrase } from "../lib/whisperLibrary";
+
 export type NoteType = "text" | "image" | "mixed" | "todo";
 export type BlockType = "text" | "image" | "todo";
 
@@ -44,6 +46,21 @@ export interface NewBlockInput {
 export interface CreateNoteInput {
   title?: string;
   blocks: NewBlockInput[];
+  feedbackKind?: "note" | "todo" | "silent";
+}
+
+export interface WhisperFeedback {
+  workdayKey: string;
+  noteCreatedCount: number;
+  todoCreatedCount: number;
+  dailyMood: string;
+  kind: "note" | "todo";
+  isTenth: boolean;
+}
+
+export interface CreateNoteResult {
+  note: Note;
+  whisper: WhisperFeedback | null;
 }
 
 export interface AppInfo {
@@ -62,6 +79,12 @@ export type BoardFilter =
   | "todos"
   | "images"
   | "trash";
+
+export interface WhisperEventPayload {
+  phrase: WhisperPhrase;
+  shownAt: number;
+  noteType: "note" | "todo";
+}
 export type CaptureMode = "note" | "todo";
 
 export interface PendingImage {

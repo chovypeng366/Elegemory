@@ -58,6 +58,47 @@ pub struct CreateNoteInput {
     #[serde(default)]
     pub title: Option<String>,
     pub blocks: Vec<NewBlock>,
+    #[serde(default)]
+    pub feedback_kind: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WhisperFeedback {
+    pub workday_key: String,
+    pub note_created_count: i64,
+    pub todo_created_count: i64,
+    pub daily_mood: String,
+    pub kind: String,
+    pub is_tenth: bool,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CreateNoteResult {
+    pub note: Note,
+    pub whisper: Option<WhisperFeedback>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RecordWhisperInput {
+    pub phrase_id: String,
+    pub category: String,
+    pub note_type: String,
+    pub shown_at: i64,
+    pub workday_key: String,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WhisperHistoryEntry {
+    pub id: String,
+    pub phrase_id: String,
+    pub category: String,
+    pub note_type: String,
+    pub shown_at: i64,
+    pub workday_key: String,
 }
 
 #[derive(Debug, Deserialize)]
