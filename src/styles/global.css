@@ -327,16 +327,6 @@ html[data-theme="clay"] {
   white-space: nowrap;
 }
 
-.timeline-rule {
-  height: 1px;
-  flex: 1;
-  background: linear-gradient(
-    90deg,
-    color-mix(in srgb, var(--color-ink) 12%, transparent),
-    color-mix(in srgb, var(--color-ink) 0%, transparent)
-  );
-}
-
 .sidebar-item {
   position: relative;
   display: flex;

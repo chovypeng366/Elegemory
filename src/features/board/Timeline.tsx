@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { Pin, Search, Sparkles } from "lucide-react";
@@ -23,6 +23,17 @@ export function Timeline({
 }: TimelineProps) {
   const query = useUiStore((state) => state.query);
   const filter = useUiStore((state) => state.filter);
+  const [, setDayTick] = useState(0);
+
+  useEffect(() => {
+    const refresh = () => setDayTick((tick) => tick + 1);
+    const timer = window.setInterval(refresh, 60_000);
+    window.addEventListener("focus", refresh);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener("focus", refresh);
+    };
+  }, []);
 
   if (!notes.length) {
     return <BoardEmptyState />;
@@ -172,9 +183,8 @@ function TimelineGroup({
           {label}
         </span>
         <span className="text-[10px] tabular-nums text-muted/55">
-          {notes.length} 条
+          · {notes.length}条
         </span>
-        <span className="timeline-rule" />
       </header>
       <div
         ref={gridRef}

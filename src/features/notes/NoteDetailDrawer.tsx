@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, motion, useDragControls } from "motion/react";
 import {
   Archive,
   Check,
@@ -50,6 +50,8 @@ export function NoteDetailDrawer() {
 
   const [title, setTitle] = useState("");
   const syncedNoteId = useRef<string | null>(null);
+  const overlayRef = useRef<HTMLDivElement>(null);
+  const dragControls = useDragControls();
 
   useEffect(() => {
     if (note && syncedNoteId.current !== note.id) {
@@ -118,7 +120,8 @@ export function NoteDetailDrawer() {
       {note && (
         <motion.div
           key="detail-overlay"
-          className="fixed inset-0 z-40"
+          ref={overlayRef}
+          className="fixed inset-0 z-40 flex items-center justify-center p-6"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -133,14 +136,33 @@ export function NoteDetailDrawer() {
             role="dialog"
             aria-modal="true"
             aria-label="记录详情"
-            initial={{ x: 52, opacity: 0.5 }}
-            animate={{ x: 0, opacity: 1 }}
-            exit={{ x: 52, opacity: 0 }}
+            drag
+            dragListener={false}
+            dragControls={dragControls}
+            dragConstraints={overlayRef}
+            dragMomentum={false}
+            dragElastic={0.04}
+            initial={{ scale: 0.97, y: 8, opacity: 0.5 }}
+            animate={{ scale: 1, y: 0, opacity: 1 }}
+            exit={{ scale: 0.98, y: 6, opacity: 0 }}
             transition={{ type: "spring", stiffness: 330, damping: 32 }}
             onClick={(event) => event.stopPropagation()}
-            className="drawer-surface absolute right-0 top-0 flex h-full w-[468px] max-w-[94vw] flex-col border-l border-line shadow-[-30px_0_60px_-30px_rgba(64,56,47,0.35)]"
+            className="drawer-surface relative flex h-[calc(100vh-88px)] max-h-[760px] w-[468px] max-w-[94vw] flex-col overflow-hidden rounded-2xl border border-line shadow-[0_30px_80px_-30px_rgba(64,56,47,0.45)]"
           >
-            <header className="flex shrink-0 items-start justify-between px-6 pb-3 pt-5">
+            <header
+              onPointerDown={(event) => {
+                if (event.button !== 0) return;
+                if (
+                  (event.target as HTMLElement).closest(
+                    "button, input, textarea, a",
+                  )
+                ) {
+                  return;
+                }
+                dragControls.start(event);
+              }}
+              className="flex shrink-0 cursor-grab touch-none select-none items-start justify-between px-6 pb-3 pt-5 active:cursor-grabbing"
+            >
               <div className="min-w-0">
                 <div className="flex items-center gap-2 text-[9.5px] font-medium uppercase tracking-[0.2em] text-muted/60">
                   <span>记录详情</span>

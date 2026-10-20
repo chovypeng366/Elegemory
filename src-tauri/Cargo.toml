@@ -1,6 +1,6 @@
 [package]
 name = "elegemory"
-version = "0.4.1"
+version = "0.4.2"
 description = "Elegemory - 以剪贴板为入口的轻量速记应用"
 authors = ["Elegemory"]
 edition = "2021"

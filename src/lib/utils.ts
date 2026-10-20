@@ -84,37 +84,36 @@ export interface TimelineGroup {
 }
 
 export function groupByDate(notes: Note[]): TimelineGroup[] {
-  const now = Date.now();
-  const todayStart = startOfDay(now);
-  const yesterdayStart = todayStart - 86_400_000;
-  const weekStart = todayStart - 6 * 86_400_000;
-  const groups: TimelineGroup[] = [];
+  const todayKey = localDateKey(Date.now());
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayKey = localDateKey(yesterday.getTime());
 
-  const bucket = (key: string, label: string, hint?: string) => {
-    let group = groups.find((item) => item.key === key);
-    if (!group) {
-      group = { key, label, hint, notes: [] };
-      groups.push(group);
-    }
-    return group;
-  };
+  const groups: TimelineGroup[] = [];
+  const byDate = new Map<string, TimelineGroup>();
 
   for (const note of notes) {
-    const created = note.createdAt;
-    if (created >= todayStart) {
-      bucket(`day:${localDateKey(todayStart)}`, "今天").notes.push(note);
-    } else if (created >= yesterdayStart) {
-      bucket(`day:${localDateKey(yesterdayStart)}`, "昨天").notes.push(note);
-    } else if (created >= weekStart) {
-      bucket(`week:${localDateKey(weekStart)}`, "最近一周").notes.push(note);
-    } else {
-      const date = new Date(created);
-      const key = `month:${date.getFullYear()}-${date.getMonth() + 1}`;
-      bucket(key, `${date.getFullYear()}年${date.getMonth() + 1}月`).notes.push(note);
+    const dateKey = localDateKey(note.createdAt);
+    let group = byDate.get(dateKey);
+    if (!group) {
+      const label = formatDateKeyLabel(dateKey);
+      group = {
+        key: `day:${dateKey}`,
+        label:
+          dateKey === todayKey
+            ? `今天 · ${label}`
+            : dateKey === yesterdayKey
+              ? `昨天 · ${label}`
+              : label,
+        notes: [],
+      };
+      byDate.set(dateKey, group);
+      groups.push(group);
     }
+    group.notes.push(note);
   }
 
-  return groups;
+  return groups.sort((a, b) => b.key.localeCompare(a.key));
 }
 
 export function orderNotes(notes: Note[], orderIds?: string[]): Note[] {
