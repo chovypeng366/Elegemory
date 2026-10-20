@@ -1,9 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import {
   AlignLeft,
   ArrowUpRight,
   ChevronRight,
-  Clock,
   Image as ImageIcon,
   LayoutGrid,
   ListChecks,
@@ -106,8 +105,6 @@ export function Sidebar({ onNewCapture, onOpenSettings }: SidebarProps) {
         ))}
       </nav>
 
-      <SidebarClock />
-
       <div className="mt-auto pt-6">
         <button
           type="button"
@@ -120,46 +117,5 @@ export function Sidebar({ onNewCapture, onOpenSettings }: SidebarProps) {
         </button>
       </div>
     </aside>
-  );
-}
-
-function SidebarClock() {
-  const [now, setNow] = useState(() => new Date());
-
-  useEffect(() => {
-    const timer = window.setInterval(() => setNow(new Date()), 1000);
-    return () => window.clearInterval(timer);
-  }, []);
-
-  const year = now.getFullYear();
-  const month = now.getMonth() + 1;
-  const day = String(now.getDate()).padStart(2, "0");
-  const weekday = now.toLocaleDateString("zh-CN", { weekday: "long" });
-  const clock = now.toLocaleTimeString("zh-CN", { hour12: false });
-
-  return (
-    <div
-      aria-label={`${year}年${month}月${now.getDate()}日 ${weekday} ${clock}`}
-      className="mt-9 px-2.5"
-    >
-      <div className="mb-4 h-px w-8 bg-accent/35" />
-      <div className="flex items-end gap-2.5">
-        <span className="font-serif text-[44px] leading-[0.85] tabular-nums text-ink/75">
-          {day}
-        </span>
-        <div className="pb-1.5">
-          <p className="text-[10px] tracking-[0.1em] text-muted/70">
-            {year}年{month}月
-          </p>
-          <p className="mt-0.5 text-[9.5px] tracking-[0.06em] text-muted/50">
-            {weekday}
-          </p>
-        </div>
-      </div>
-      <div className="mt-3.5 flex items-center gap-1.5 text-[11px] tabular-nums text-muted/70">
-        <Clock size={12} className="text-accent/70" />
-        <time dateTime={now.toISOString()}>{clock}</time>
-      </div>
-    </div>
   );
 }

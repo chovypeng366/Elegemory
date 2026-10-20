@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import type { RefObject } from "react";
 import { CalendarDays, Search, Settings2, X } from "lucide-react";
 import { IconButton } from "../../components/IconButton";
@@ -28,6 +29,19 @@ export function BoardHeader({ count, searchRef, onOpenSettings }: BoardHeaderPro
   const setDateFilter = useUiStore((state) => state.setDateFilter);
   const { title, subtitle } = meta[filter];
   const dateLabel = dateFilter ? formatDateKeyLabel(dateFilter) : "";
+  const [today, setToday] = useState(() => new Date());
+
+  useEffect(() => {
+    const refresh = () => setToday(new Date());
+    const timer = window.setInterval(refresh, 60_000);
+    window.addEventListener("focus", refresh);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener("focus", refresh);
+    };
+  }, []);
+
+  const todayLabel = `${today.getFullYear()}年${today.getMonth() + 1}月${today.getDate()}日`;
 
   const description = query
     ? dateFilter
@@ -42,6 +56,9 @@ export function BoardHeader({ count, searchRef, onOpenSettings }: BoardHeaderPro
   return (
     <div className="flex items-end gap-4 px-8 pb-4 pt-6">
       <div className="min-w-0">
+        <p className="mb-1.5 font-serif text-[10.5px] tracking-[0.16em] text-muted/55">
+          {todayLabel}
+        </p>
         <h1 className="font-serif text-[25px] leading-tight tracking-[0.015em] text-ink">
           {title}
         </h1>
