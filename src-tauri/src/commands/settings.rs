@@ -56,7 +56,7 @@ pub fn set_setting(state: State<'_, Db>, key: String, value: String) -> Result<(
     if key.is_empty() || key.len() > 64 {
         return Err("设置项名称不合法".to_string());
     }
-    if value.len() > 4096 {
+    if value.len() > 512 * 1024 {
         return Err("设置内容过长".to_string());
     }
     state.set_setting(key, &value)

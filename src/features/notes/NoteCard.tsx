@@ -2,6 +2,8 @@ import { motion, useReducedMotion } from "motion/react";
 import {
   Check,
   Copy,
+  GripVertical,
+  Pencil,
   Pin,
   RotateCcw,
   Star,
@@ -29,9 +31,10 @@ import { MagneticPin } from "../../components/MagneticPin";
 interface NoteCardProps {
   note: Note;
   index: number;
+  canReorder?: boolean;
 }
 
-export function NoteCard({ note, index }: NoteCardProps) {
+export function NoteCard({ note, index, canReorder = false }: NoteCardProps) {
   const reduced = useReducedMotion();
   const openNote = useUiStore((state) => state.openNote);
   const pushToast = useUiStore((state) => state.pushToast);
@@ -110,8 +113,23 @@ export function NoteCard({ note, index }: NoteCardProps) {
           <span className="size-1.5 rounded-full bg-pin/70" />
           待办
         </span>
-        <span className="text-[10px] tabular-nums text-muted/60">
-          {todos.filter((todo) => todo.isCompleted).length}/{todos.length}
+        <span className="flex items-center gap-2">
+          <span className="text-[10px] tabular-nums text-muted/60">
+            {todos.filter((todo) => todo.isCompleted).length}/{todos.length}
+          </span>
+          {!archived && (
+            <button
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                openNote(note.id);
+              }}
+              className="focus-ring flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[9.5px] text-muted/60 transition-colors hover:bg-ink/5 hover:text-ink"
+            >
+              <Pencil size={10} />
+              编辑
+            </button>
+          )}
         </span>
       </div>
       <TodoPreview todos={todos} archived={archived} onToggle={toggleTodo} />
@@ -157,11 +175,26 @@ export function NoteCard({ note, index }: NoteCardProps) {
       role="button"
       tabIndex={0}
       aria-label={`查看记录：${note.title || "速记"}`}
+      data-note-id={note.id}
       className="focus-ring group relative cursor-pointer rounded-[18px]"
     >
       <div className="note-tilt" style={tiltStyle(note.id)}>
         {content}
       </div>
+
+      {canReorder && (
+        <span
+          data-drag-handle
+          draggable
+          role="button"
+          aria-label="拖拽排序"
+          title="拖拽排序"
+          onClick={(event) => event.stopPropagation()}
+          className="absolute left-2 top-2 z-20 flex size-7 cursor-grab items-center justify-center rounded-lg border border-line/70 bg-photo/85 text-muted/65 opacity-0 shadow-sm backdrop-blur-sm transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100 active:cursor-grabbing"
+        >
+          <GripVertical size={13} />
+        </span>
+      )}
 
       <div
         onClick={(event) => event.stopPropagation()}
@@ -186,6 +219,13 @@ export function NoteCard({ note, index }: NoteCardProps) {
           </>
         ) : (
           <>
+            <IconButton
+              size="sm"
+              label="编辑"
+              onClick={() => openNote(note.id)}
+            >
+              <Pencil size={13} />
+            </IconButton>
             <IconButton size="sm" label="复制" onClick={() => void handleCopy()}>
               <Copy size={13} />
             </IconButton>

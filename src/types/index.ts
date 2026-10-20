@@ -55,7 +55,13 @@ export interface AppInfo {
   assetCount: number;
 }
 
-export type BoardFilter = "all" | "favorites" | "todos" | "images" | "trash";
+export type BoardFilter =
+  | "all"
+  | "favorites"
+  | "text"
+  | "todos"
+  | "images"
+  | "trash";
 export type CaptureMode = "note" | "todo";
 
 export interface PendingImage {

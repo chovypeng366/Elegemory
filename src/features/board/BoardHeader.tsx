@@ -7,6 +7,7 @@ import { IconButton } from "../../components/IconButton";
 const meta: Record<BoardFilter, { title: string; subtitle: string }> = {
   all: { title: "全部记忆", subtitle: "按时间收好每一次随手记录" },
   favorites: { title: "收藏", subtitle: "舍不得弄丢的那些" },
+  text: { title: "文字", subtitle: "只写着字句的纸片" },
   todos: { title: "待办", subtitle: "还没做完的小事" },
   images: { title: "图片", subtitle: "粘贴、拖入的截图与照片" },
   trash: { title: "回收站", subtitle: "删除的记录会先在这里停留" },
@@ -31,7 +32,11 @@ export function BoardHeader({ count, searchRef, onOpenSettings }: BoardHeaderPro
           {title}
         </h1>
         <p className="mt-1.5 text-[11px] tracking-[0.02em] text-muted/70">
-          {query ? `在 “${query}” 中找到了 ${count} 条` : `${subtitle} · ${count} 条`}
+          {query
+            ? `在 “${query}” 中找到了 ${count} 条`
+            : filter === "all"
+              ? `${subtitle} · ${count} 条 · 拖拽卡片可排序`
+              : `${subtitle} · ${count} 条`}
         </p>
       </div>
 

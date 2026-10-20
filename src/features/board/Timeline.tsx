@@ -1,7 +1,8 @@
+import { useRef } from "react";
 import type { ReactNode } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { Pin, Search, Sparkles } from "lucide-react";
-import { groupByDate } from "../../lib/utils";
+import { groupByDate, orderNotes } from "../../lib/utils";
 import { showCapture } from "../../services/system";
 import { useUiStore } from "../../stores/uiStore";
 import type { Note } from "../../types";
@@ -9,9 +10,17 @@ import { NoteCard } from "../notes/NoteCard";
 
 interface TimelineProps {
   notes: Note[];
+  orderMap: Record<string, string[]>;
+  canReorder: boolean;
+  onReorder: (groupKey: string, ids: string[]) => void;
 }
 
-export function Timeline({ notes }: TimelineProps) {
+export function Timeline({
+  notes,
+  orderMap,
+  canReorder,
+  onReorder,
+}: TimelineProps) {
   const query = useUiStore((state) => state.query);
   const filter = useUiStore((state) => state.filter);
 
@@ -27,16 +36,22 @@ export function Timeline({ notes }: TimelineProps) {
     <div className="mx-auto w-full max-w-[1240px] pb-10">
       {pinned.length > 0 && (
         <TimelineGroup
+          groupKey="pinned"
           label="置顶"
           icon={<Pin size={12} className="text-pin" />}
-          notes={pinned}
+          notes={orderNotes(pinned, orderMap.pinned)}
+          canReorder={canReorder}
+          onReorder={onReorder}
         />
       )}
       {groups.map((group) => (
         <TimelineGroup
           key={group.key}
+          groupKey={group.key}
           label={group.label}
-          notes={group.notes}
+          notes={orderNotes(group.notes, orderMap[group.key])}
+          canReorder={canReorder}
+          onReorder={onReorder}
         />
       ))}
       {query && filter !== "trash" && (
@@ -50,14 +65,101 @@ export function Timeline({ notes }: TimelineProps) {
 }
 
 function TimelineGroup({
+  groupKey,
   label,
   notes,
   icon,
+  canReorder,
+  onReorder,
 }: {
+  groupKey: string;
   label: string;
   notes: Note[];
   icon?: ReactNode;
+  canReorder: boolean;
+  onReorder: (groupKey: string, ids: string[]) => void;
 }) {
+  const gridRef = useRef<HTMLDivElement>(null);
+  const draggedId = useRef<string | null>(null);
+
+  const findCard = (event: React.DragEvent) =>
+    (event.target as HTMLElement).closest("[data-note-id]") as HTMLElement | null;
+
+  const clearDragStyles = () => {
+    gridRef.current
+      ?.querySelectorAll(".is-dragging, .drop-target")
+      .forEach((element) => element.classList.remove("is-dragging", "drop-target"));
+  };
+
+  const endDrag = () => {
+    draggedId.current = null;
+    clearDragStyles();
+  };
+
+  const handleDragStart = (event: React.DragEvent<HTMLDivElement>) => {
+    if (!canReorder) return;
+    const handle = (event.target as HTMLElement).closest("[data-drag-handle]");
+    const card = findCard(event);
+    if (!handle || !card) return;
+
+    const noteId = card.dataset.noteId;
+    if (!noteId) return;
+
+    draggedId.current = noteId;
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData("text/plain", noteId);
+    try {
+      event.dataTransfer.setDragImage(card, 28, 22);
+    } catch {
+      // setDragImage is not critical
+    }
+    requestAnimationFrame(() => card.classList.add("is-dragging"));
+  };
+
+  const handleDragOver = (event: React.DragEvent<HTMLDivElement>) => {
+    if (!canReorder || !draggedId.current) return;
+    const card = findCard(event);
+    const targetId = card?.dataset.noteId;
+    if (!card || !targetId || targetId === draggedId.current) return;
+
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "move";
+    gridRef.current
+      ?.querySelectorAll(".drop-target")
+      .forEach((element) => element.classList.remove("drop-target"));
+    card.classList.add("drop-target");
+  };
+
+  const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
+    if (!canReorder || !draggedId.current) return;
+    const card = findCard(event);
+    const targetId = card?.dataset.noteId;
+    const sourceId = draggedId.current;
+    if (!targetId || targetId === sourceId) {
+      endDrag();
+      return;
+    }
+
+    event.preventDefault();
+    const ids = notes.map((note) => note.id);
+    const from = ids.indexOf(sourceId);
+    const to = ids.indexOf(targetId);
+    endDrag();
+    if (from < 0 || to < 0) return;
+
+    ids.splice(from, 1);
+    ids.splice(to, 0, sourceId);
+    onReorder(groupKey, ids);
+  };
+
+  const handleDragLeave = (event: React.DragEvent<HTMLDivElement>) => {
+    if (!gridRef.current?.contains(event.relatedTarget as Node | null)) {
+      gridRef.current
+        ?.querySelectorAll(".drop-target")
+        .forEach((element) => element.classList.remove("drop-target"));
+    }
+  };
+
   return (
     <motion.section
       initial={{ opacity: 0, y: 6 }}
@@ -75,10 +177,23 @@ function TimelineGroup({
         </span>
         <span className="timeline-rule" />
       </header>
-      <div className="grid grid-cols-[repeat(auto-fill,minmax(252px,1fr))] items-start gap-x-6 gap-y-7">
+      <div
+        ref={gridRef}
+        onDragStart={handleDragStart}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+        onDragEnd={endDrag}
+        className="grid grid-cols-[repeat(auto-fill,minmax(252px,1fr))] items-start gap-x-6 gap-y-7"
+      >
         <AnimatePresence initial={false}>
           {notes.map((note, index) => (
-            <NoteCard key={note.id} note={note} index={index} />
+            <NoteCard
+              key={note.id}
+              note={note}
+              index={index}
+              canReorder={canReorder}
+            />
           ))}
         </AnimatePresence>
       </div>
@@ -107,20 +222,25 @@ function BoardEmptyState() {
             title: "还没有收藏",
             body: "把舍不得弄丢的记录收藏起来，它们会安静地待在这里。",
           }
-        : filter === "todos"
+        : filter === "text"
           ? {
-              title: "还没有待办",
-              body: "在速记窗口切换到「待办」，一行写一件事，回车就收好。",
+              title: "还没有纯文字记录",
+              body: "在速记窗口直接输入文字并收好，就会出现在这里。",
             }
-          : filter === "images"
+          : filter === "todos"
             ? {
-                title: "还没有图片记录",
-                body: "截图后按 Ctrl + V 粘贴，或把 PNG / JPEG 图片拖进速记窗口。",
+                title: "还没有待办",
+                body: "在速记窗口切换到「待办」，一行写一件事，回车就收好。",
               }
-            : {
-                title: "纸面还很干净",
-                body: "从一个念头、一段文字或一张截图开始。记录不需要创建文档。",
-              };
+            : filter === "images"
+              ? {
+                  title: "还没有图片记录",
+                  body: "截图后按 Ctrl + V 粘贴，或把 PNG / JPEG 图片拖进速记窗口。",
+                }
+              : {
+                  title: "纸面还很干净",
+                  body: "从一个念头、一段文字或一张截图开始。记录不需要创建文档。",
+                };
 
   return (
     <div className="mx-auto flex h-full max-w-[420px] flex-col items-center justify-center pb-24 text-center">

@@ -1,6 +1,13 @@
 import { useEffect, useMemo, useRef } from "react";
 import { onNotesChanged, onWindowFocus, showCapture } from "../../services/system";
-import { hasImage, hasTodo } from "../../lib/utils";
+import {
+  APPEARANCE_KEYS,
+  DEFAULT_BACKGROUND_OPACITY,
+  clampBackgroundOpacity,
+  parseBoardOrder,
+} from "../../lib/appearance";
+import { assetSrc } from "../../lib/assets";
+import { hasImage, hasTodo, isTextNote } from "../../lib/utils";
 import { useNotesStore } from "../../stores/notesStore";
 import { useSettingsStore } from "../../stores/settingsStore";
 import { useUiStore } from "../../stores/uiStore";
@@ -20,9 +27,21 @@ export function BoardWindow() {
   const filter = useUiStore((state) => state.filter);
   const query = useUiStore((state) => state.query);
   const setSettingsOpen = useUiStore((state) => state.setSettingsOpen);
-  const loadSettings = useSettingsStore((state) => state.load);
+  const settings = useSettingsStore((state) => state.settings);
+  const updateSetting = useSettingsStore((state) => state.updateSetting);
 
   const searchRef = useRef<HTMLInputElement>(null);
+
+  const orderMap = useMemo(
+    () => parseBoardOrder(settings[APPEARANCE_KEYS.boardOrder]),
+    [settings],
+  );
+  const canReorder = filter === "all" && !query.trim();
+
+  const backgroundPath = settings[APPEARANCE_KEYS.background] ?? "";
+  const backgroundOpacity = clampBackgroundOpacity(
+    Number(settings[APPEARANCE_KEYS.backgroundOpacity] ?? DEFAULT_BACKGROUND_OPACITY),
+  );
 
   const filtered = useMemo(() => {
     const keyword = query.trim().toLowerCase();
@@ -31,6 +50,7 @@ export function BoardWindow() {
       .filter((note) => (filter === "trash" ? note.isArchived : !note.isArchived))
       .filter((note) => {
         if (filter === "favorites") return note.isFavorite;
+        if (filter === "text") return isTextNote(note);
         if (filter === "todos") return hasTodo(note);
         if (filter === "images") return hasImage(note);
         return true;
@@ -46,8 +66,12 @@ export function BoardWindow() {
 
   useEffect(() => {
     void load();
-    void loadSettings();
-  }, [load, loadSettings]);
+  }, [load]);
+
+  const handleReorder = (groupKey: string, ids: string[]) => {
+    const next = { ...orderMap, [groupKey]: ids };
+    void updateSetting(APPEARANCE_KEYS.boardOrder, JSON.stringify(next));
+  };
 
   useEffect(() => {
     let disposed = false;
@@ -112,9 +136,19 @@ export function BoardWindow() {
   const openSettings = () => setSettingsOpen(true);
 
   return (
-    <div className="paper-grain flex h-full flex-col bg-canvas">
+    <div className="paper-grain relative flex h-full flex-col bg-canvas">
+      {backgroundPath && (
+        <div
+          aria-hidden="true"
+          className="appearance-backdrop"
+          style={{
+            backgroundImage: `url("${assetSrc(backgroundPath)}")`,
+            opacity: backgroundOpacity,
+          }}
+        />
+      )}
       <WindowChrome />
-      <div className="flex min-h-0 flex-1">
+      <div className="relative z-10 flex min-h-0 flex-1">
         <Sidebar
           onNewCapture={() => {
             void showCapture().catch(() => {
@@ -133,7 +167,12 @@ export function BoardWindow() {
             {loading && !loaded ? (
               <TimelineSkeleton />
             ) : (
-              <Timeline notes={filtered} />
+              <Timeline
+                notes={filtered}
+                orderMap={orderMap}
+                canReorder={canReorder}
+                onReorder={handleReorder}
+              />
             )}
           </div>
         </main>

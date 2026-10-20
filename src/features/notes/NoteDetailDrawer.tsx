@@ -465,7 +465,7 @@ function EditableBlock({
             value={value}
             rows={1}
             spellCheck={false}
-            placeholder="写下一件要做的事…"
+            placeholder="点击编辑这条待办…"
             onChange={(event) => setValue(event.target.value)}
             onFocus={() => setFocused(true)}
             onBlur={() => {

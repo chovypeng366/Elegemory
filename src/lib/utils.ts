@@ -76,22 +76,39 @@ export function groupByDate(notes: Note[]): TimelineGroup[] {
     return group;
   };
 
+  const dateKey = (timestamp: number) => {
+    const date = new Date(timestamp);
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+  };
+
   for (const note of notes) {
     const created = note.createdAt;
     if (created >= todayStart) {
-      bucket("today", "今天").notes.push(note);
+      bucket(`day:${dateKey(todayStart)}`, "今天").notes.push(note);
     } else if (created >= yesterdayStart) {
-      bucket("yesterday", "昨天").notes.push(note);
+      bucket(`day:${dateKey(yesterdayStart)}`, "昨天").notes.push(note);
     } else if (created >= weekStart) {
-      bucket("week", "最近一周").notes.push(note);
+      bucket(`week:${dateKey(weekStart)}`, "最近一周").notes.push(note);
     } else {
       const date = new Date(created);
-      const key = `${date.getFullYear()}-${date.getMonth() + 1}`;
+      const key = `month:${date.getFullYear()}-${date.getMonth() + 1}`;
       bucket(key, `${date.getFullYear()}年${date.getMonth() + 1}月`).notes.push(note);
     }
   }
 
   return groups;
+}
+
+export function orderNotes(notes: Note[], orderIds?: string[]): Note[] {
+  if (!orderIds?.length) return notes;
+
+  const rank = new Map(orderIds.map((id, index) => [id, index]));
+  const ordered = notes
+    .filter((note) => rank.has(note.id))
+    .sort((a, b) => (rank.get(a.id) ?? 0) - (rank.get(b.id) ?? 0));
+  const unordered = notes.filter((note) => !rank.has(note.id));
+
+  return [...unordered, ...ordered];
 }
 
 export function noteText(note: Note): string {
@@ -131,6 +148,10 @@ export function hasTodo(note: Note): boolean {
 
 export function hasImage(note: Note): boolean {
   return note.blocks.some((block) => Boolean(block.asset));
+}
+
+export function isTextNote(note: Note): boolean {
+  return !hasImage(note) && !hasTodo(note);
 }
 
 export function displayTitle(note: Note): string {

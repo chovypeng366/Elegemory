@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import {
+  AlignLeft,
   ArrowUpRight,
   ChevronRight,
   Image as ImageIcon,
@@ -10,7 +11,7 @@ import {
   Star,
   Trash2,
 } from "lucide-react";
-import { cn, hasImage, hasTodo } from "../../lib/utils";
+import { cn, hasImage, hasTodo, isTextNote } from "../../lib/utils";
 import { captureShortcutLabel, useSettingsStore } from "../../stores/settingsStore";
 import { useNotesStore } from "../../stores/notesStore";
 import { useUiStore } from "../../stores/uiStore";
@@ -23,8 +24,9 @@ const items: Array<{
 }> = [
   { key: "all", label: "全部记忆", icon: LayoutGrid },
   { key: "favorites", label: "收藏", icon: Star },
-  { key: "todos", label: "待办", icon: ListChecks },
+  { key: "text", label: "文字", icon: AlignLeft },
   { key: "images", label: "图片", icon: ImageIcon },
+  { key: "todos", label: "待办", icon: ListChecks },
   { key: "trash", label: "回收站", icon: Trash2 },
 ];
 
@@ -46,6 +48,7 @@ export function Sidebar({ onNewCapture, onOpenSettings }: SidebarProps) {
     return {
       all: active.length,
       favorites: active.filter((note) => note.isFavorite).length,
+      text: active.filter(isTextNote).length,
       todos: active.filter(hasTodo).length,
       images: active.filter(hasImage).length,
       trash: notes.filter((note) => note.isArchived).length,
@@ -102,17 +105,7 @@ export function Sidebar({ onNewCapture, onOpenSettings }: SidebarProps) {
         ))}
       </nav>
 
-      <div className="mt-auto space-y-3 pt-6">
-        <div className="rounded-xl border border-line/60 bg-photo/45 p-3">
-          <div className="mb-1 flex items-center gap-1.5 text-[10.5px] font-medium text-muted">
-            <span className="size-1.5 rounded-full bg-pin/80" />
-            本地优先
-          </div>
-          <p className="text-[10.5px] leading-5 text-muted/75">
-            速记与图片只保存在这台电脑上，无需登录，断网也能使用。
-          </p>
-        </div>
-
+      <div className="mt-auto pt-6">
         <button
           type="button"
           onClick={onOpenSettings}

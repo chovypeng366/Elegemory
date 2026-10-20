@@ -371,7 +371,13 @@ export const mockBackend = {
   },
 
   async setSetting(key: string, value: string): Promise<void> {
-    const current = await this.getSettings();
+    let current: Record<string, string> = { capture_shortcut: "Ctrl+Shift+Space" };
+    try {
+      const raw = localStorage.getItem(SETTINGS_KEY);
+      if (raw) current = { ...current, ...(JSON.parse(raw) as Record<string, string>) };
+    } catch {
+      // keep defaults
+    }
     current[key] = value;
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(current));
   },

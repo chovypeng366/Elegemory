@@ -44,7 +44,7 @@ export function ConfirmDialog() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.98 }}
             transition={{ type: "spring", stiffness: 340, damping: 30 }}
-            className="relative w-[380px] max-w-full overflow-hidden rounded-2xl border border-line bg-[#FBF6EC] p-5 shadow-[0_30px_60px_-24px_rgba(64,56,47,0.5)]"
+            className="relative w-[380px] max-w-full overflow-hidden rounded-2xl border border-line bg-surface p-5 shadow-[0_30px_60px_-24px_rgba(64,56,47,0.5)]"
           >
             <h3 className="font-serif text-[18px] text-ink">{options.title}</h3>
             {options.description && (

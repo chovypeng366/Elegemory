@@ -14,6 +14,7 @@ interface SettingsState {
   load: (force?: boolean) => Promise<void>;
   refreshAppInfo: () => Promise<void>;
   updateShortcut: (shortcut: string) => Promise<boolean>;
+  updateSetting: (key: string, value: string) => Promise<boolean>;
 }
 
 export const useSettingsStore = create<SettingsState>((set, get) => ({
@@ -55,6 +56,27 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       useUiStore.getState().pushToast(`速记快捷键已更新为 ${normalized}`, "success");
       return true;
     } catch (error) {
+      useUiStore.getState().pushToast(errorMessage(error), "error");
+      return false;
+    }
+  },
+
+  async updateSetting(key, value) {
+    const previous = get().settings[key];
+    set((state) => ({
+      settings: { ...state.settings, [key]: value },
+    }));
+
+    try {
+      await api.setSetting(key, value);
+      return true;
+    } catch (error) {
+      set((state) => {
+        const nextSettings = { ...state.settings };
+        if (previous === undefined) delete nextSettings[key];
+        else nextSettings[key] = previous;
+        return { settings: nextSettings };
+      });
       useUiStore.getState().pushToast(errorMessage(error), "error");
       return false;
     }
