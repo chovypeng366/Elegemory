@@ -98,9 +98,6 @@ export function WhisperSettings() {
               void updateSetting(WHISPER_SETTING_KEYS.tenthMode, value)
             }
           />
-          <p className="mt-1.5 text-[9.5px] leading-4 text-muted/60">
-            第一次达成第 10 条时始终显示「这里是地狱吗」。
-          </p>
         </div>
 
         <SettingRow
