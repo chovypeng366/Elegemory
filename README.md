@@ -172,7 +172,6 @@ Elegemory/
 │  │  │  └─ system.rs          # 窗口与退出
 │  │  └─ lib.rs                # 插件、迁移、快捷键、窗口生命周期
 │  └─ tauri.conf.json
-├─ readme.txt                  # 原始需求
 └─ README.md
 ```
 
