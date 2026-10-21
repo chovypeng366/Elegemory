@@ -1,0 +1,1050 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Elegemory · 把掠过手边的东西，轻轻留住</title>
+    <meta
+      name="description"
+      content="Elegemory 是一款以剪贴板为入口、以时间轴为组织方式的 Windows 本地速记应用。截图、文字、待办，随手收好，只保存在你的设备上。"
+    />
+    <meta name="theme-color" content="#f5f0e8" />
+    <link rel="icon" type="image/png" href="assets/icon.png" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Elegemory · 本地优先的轻量速记" />
+    <meta
+      property="og:description"
+      content="截图、文字、待办，随手收好。数据只保存在你的设备上，不需要账号。"
+    />
+    <meta property="og:image" content="assets/app-board.png" />
+    <style>
+      :root {
+        --canvas: #f5f0e8;
+        --canvas-deep: #eee5d7;
+        --paper: #fffaf0;
+        --surface: #fbf6ec;
+        --ink: #40382f;
+        --muted: #8d7e6d;
+        --accent: #b8895a;
+        --accent-deep: #96693f;
+        --pin: #829d97;
+        --line: rgba(64, 56, 47, 0.11);
+        --shadow: 0 18px 50px -28px rgba(64, 56, 47, 0.45);
+        --font-sans: "Segoe UI Variable Text", "Segoe UI", "Microsoft YaHei UI",
+          "Microsoft YaHei", "PingFang SC", "Hiragino Sans GB", system-ui,
+          sans-serif;
+        --font-serif: "Georgia", "Songti SC", "STSong", "SimSun",
+          "Times New Roman", ui-serif, serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        color: var(--ink);
+        background:
+          radial-gradient(1100px 700px at 88% -10%, rgba(184, 137, 90, 0.16), transparent 60%),
+          radial-gradient(900px 600px at -8% 14%, rgba(130, 157, 151, 0.13), transparent 58%),
+          var(--canvas);
+        font-family: var(--font-sans);
+        line-height: 1.65;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      a {
+        color: inherit;
+        text-decoration: none;
+      }
+
+      img {
+        display: block;
+        max-width: 100%;
+      }
+
+      figure {
+        margin: 0;
+      }
+
+      .wrap {
+        width: min(1120px, calc(100% - 48px));
+        margin: 0 auto;
+      }
+
+      .mono {
+        font-variant-numeric: tabular-nums;
+        letter-spacing: 0.02em;
+      }
+
+      /* ---------- header ---------- */
+      .site-header {
+        position: sticky;
+        top: 0;
+        z-index: 20;
+        border-bottom: 1px solid transparent;
+        background: rgba(245, 240, 232, 0.78);
+        backdrop-filter: blur(14px);
+      }
+
+      .site-header .wrap {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        height: 72px;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        font-family: var(--font-serif);
+        font-size: 21px;
+        letter-spacing: 0.015em;
+      }
+
+      .brand img {
+        width: 30px;
+        height: 30px;
+        border-radius: 8px;
+        box-shadow: 0 3px 10px -4px rgba(64, 56, 47, 0.4);
+      }
+
+      .nav {
+        display: flex;
+        align-items: center;
+        gap: 26px;
+        font-size: 13px;
+        color: var(--muted);
+      }
+
+      .nav a {
+        transition: color 0.18s ease;
+      }
+
+      .nav a:hover {
+        color: var(--ink);
+      }
+
+      .nav .gh {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        padding: 8px 14px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: rgba(255, 250, 240, 0.55);
+        color: var(--ink);
+      }
+
+      /* ---------- hero ---------- */
+      .hero {
+        padding: 74px 0 86px;
+      }
+
+      .hero-grid {
+        display: grid;
+        grid-template-columns: 1.02fr 0.98fr;
+        gap: 56px;
+        align-items: center;
+      }
+
+      .hero-grid > *,
+      .split > *,
+      .download-card > * {
+        min-width: 0;
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 9px;
+        margin-bottom: 24px;
+        color: var(--accent-deep);
+        font-size: 11.5px;
+        letter-spacing: 0.19em;
+        text-transform: uppercase;
+      }
+
+      .eyebrow::before {
+        content: "";
+        width: 26px;
+        height: 1px;
+        background: currentColor;
+        opacity: 0.55;
+      }
+
+      h1 {
+        margin: 0;
+        font-family: var(--font-serif);
+        font-size: clamp(40px, 5.2vw, 62px);
+        font-weight: 400;
+        line-height: 1.12;
+        letter-spacing: 0.005em;
+      }
+
+      h1 em {
+        color: var(--accent-deep);
+        font-style: normal;
+      }
+
+      .lede {
+        max-width: 500px;
+        margin: 24px 0 0;
+        color: var(--muted);
+        font-size: 15.5px;
+        line-height: 1.9;
+      }
+
+      .lede strong {
+        color: var(--ink);
+        font-weight: 500;
+      }
+
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 12px;
+        margin-top: 34px;
+      }
+
+      .button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 9px;
+        height: 46px;
+        padding: 0 22px;
+        border: 1px solid transparent;
+        border-radius: 12px;
+        font-size: 13.5px;
+        transition:
+          transform 0.18s ease,
+          background-color 0.18s ease,
+          box-shadow 0.18s ease;
+      }
+
+      .button:hover {
+        transform: translateY(-1px);
+      }
+
+      .button.primary {
+        background: linear-gradient(180deg, #c29263, #a97849);
+        color: #fffaf0;
+        box-shadow: 0 10px 24px -12px rgba(150, 105, 63, 0.75);
+      }
+
+      .button.primary:hover {
+        background: linear-gradient(180deg, #c99a6b, #a06f42);
+      }
+
+      .button.ghost {
+        border-color: var(--line);
+        background: rgba(255, 250, 240, 0.6);
+        color: var(--ink);
+      }
+
+      .meta-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px 18px;
+        margin-top: 20px;
+        color: var(--muted);
+        font-size: 11.5px;
+      }
+
+      .meta-row span {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .dot {
+        width: 4px;
+        height: 4px;
+        border-radius: 50%;
+        background: var(--accent);
+      }
+
+      /* ---------- app shot ---------- */
+      .shot-wrap {
+        position: relative;
+        min-width: 0;
+      }
+
+      .pin {
+        position: absolute;
+        z-index: 3;
+        top: -15px;
+        left: 50%;
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        transform: translateX(-50%);
+        background:
+          radial-gradient(circle at 35% 30%, #d8e2de 0 18%, #9db6b0 45%, #748f89 78%);
+        box-shadow:
+          0 3px 6px rgba(64, 56, 47, 0.3),
+          inset 0 1px 2px rgba(255, 255, 255, 0.7);
+      }
+
+      .shot {
+        overflow: hidden;
+        border: 1px solid rgba(64, 56, 47, 0.13);
+        border-radius: 18px;
+        background: var(--paper);
+        box-shadow:
+          0 2px 4px rgba(64, 56, 47, 0.05),
+          0 42px 90px -46px rgba(64, 56, 47, 0.7);
+        transform: rotate(-1.1deg);
+        transition: transform 0.35s ease;
+      }
+
+      .shot:hover {
+        transform: rotate(0deg);
+      }
+
+      .shot img {
+        width: 100%;
+        height: auto;
+      }
+
+      .shot-caption {
+        margin: 18px 0 0;
+        color: var(--muted);
+        font-size: 10.5px;
+        text-align: center;
+        letter-spacing: 0.06em;
+      }
+
+      /* ---------- sections ---------- */
+      section {
+        padding: 84px 0;
+      }
+
+      .section-head {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 30px;
+        margin-bottom: 38px;
+      }
+
+      h2 {
+        margin: 0;
+        font-family: var(--font-serif);
+        font-size: clamp(27px, 3.2vw, 36px);
+        font-weight: 400;
+        line-height: 1.25;
+      }
+
+      .section-head p {
+        max-width: 430px;
+        margin: 0;
+        color: var(--muted);
+        font-size: 13.5px;
+        line-height: 1.8;
+      }
+
+      .features {
+        border-top: 1px solid var(--line);
+        background: rgba(255, 250, 240, 0.38);
+      }
+
+      .feature-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        border-top: 1px solid var(--line);
+        border-left: 1px solid var(--line);
+      }
+
+      .feature {
+        padding: 28px 28px 30px;
+        border-right: 1px solid var(--line);
+        border-bottom: 1px solid var(--line);
+        background: rgba(255, 250, 240, 0.42);
+        transition: background-color 0.2s ease;
+      }
+
+      .feature:hover {
+        background: rgba(255, 250, 240, 0.8);
+      }
+
+      .feature .icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 34px;
+        height: 34px;
+        margin-bottom: 17px;
+        border: 1px solid rgba(184, 137, 90, 0.25);
+        border-radius: 10px;
+        color: var(--accent-deep);
+        background: rgba(184, 137, 90, 0.07);
+      }
+
+      .feature h3 {
+        margin: 0 0 8px;
+        font-family: var(--font-serif);
+        font-size: 16px;
+        font-weight: 400;
+        letter-spacing: 0.02em;
+      }
+
+      .feature p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 12.5px;
+        line-height: 1.8;
+      }
+
+      /* ---------- private ---------- */
+      .split {
+        display: grid;
+        grid-template-columns: 0.9fr 1.1fr;
+        gap: 70px;
+        align-items: start;
+      }
+
+      .split h2 {
+        margin-bottom: 18px;
+      }
+
+      .split-copy {
+        color: var(--muted);
+        font-size: 13.5px;
+        line-height: 1.9;
+      }
+
+      .principles {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .principles li {
+        display: grid;
+        grid-template-columns: 38px 1fr;
+        gap: 16px;
+        padding: 22px 0;
+        border-top: 1px solid var(--line);
+      }
+
+      .principles li:last-child {
+        border-bottom: 1px solid var(--line);
+      }
+
+      .principles .n {
+        color: var(--accent);
+        font-family: var(--font-serif);
+        font-size: 13px;
+        letter-spacing: 0.08em;
+      }
+
+      .principles h3 {
+        margin: 0 0 4px;
+        font-family: var(--font-serif);
+        font-size: 16px;
+        font-weight: 400;
+      }
+
+      .principles p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 12.5px;
+        line-height: 1.8;
+      }
+
+      /* ---------- download ---------- */
+      .download {
+        padding-top: 30px;
+      }
+
+      .download-card {
+        display: grid;
+        grid-template-columns: 1.1fr 0.9fr;
+        gap: 46px;
+        padding: 42px;
+        border: 1px solid rgba(64, 56, 47, 0.13);
+        border-radius: 22px;
+        background:
+          radial-gradient(700px 300px at 100% 0%, rgba(184, 137, 90, 0.14), transparent 70%),
+          rgba(255, 250, 240, 0.72);
+        box-shadow: var(--shadow);
+      }
+
+      .download h2 {
+        margin-bottom: 12px;
+      }
+
+      .download p {
+        max-width: 420px;
+        margin: 0 0 26px;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.8;
+      }
+
+      .version {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 18px;
+        color: var(--accent-deep);
+        font-size: 11px;
+        letter-spacing: 0.13em;
+        text-transform: uppercase;
+      }
+
+      .version .live {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: #6f9a7e;
+        box-shadow: 0 0 0 3px rgba(111, 154, 126, 0.14);
+      }
+
+      .files {
+        border-top: 1px solid var(--line);
+      }
+
+      .file-row {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 13px 0;
+        border-bottom: 1px solid var(--line);
+        font-size: 12px;
+      }
+
+      .file-row a {
+        color: var(--ink);
+        transition: color 0.18s ease;
+      }
+
+      .file-row a:hover {
+        color: var(--accent-deep);
+      }
+
+      .file-row .kind {
+        color: var(--muted);
+        font-size: 10.5px;
+      }
+
+      .file-row .size {
+        color: var(--muted);
+        font-size: 10.5px;
+        white-space: nowrap;
+      }
+
+      .fineprint {
+        margin-top: 18px;
+        color: var(--muted);
+        font-size: 10.5px;
+        line-height: 1.8;
+      }
+
+      .fineprint code {
+        padding: 1px 5px;
+        border-radius: 4px;
+        background: rgba(64, 56, 47, 0.06);
+        font-size: 10px;
+        word-break: break-all;
+      }
+
+      /* ---------- faq ---------- */
+      .faq-list {
+        border-top: 1px solid var(--line);
+      }
+
+      details {
+        border-bottom: 1px solid var(--line);
+      }
+
+      summary {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+        padding: 19px 2px;
+        cursor: pointer;
+        list-style: none;
+        font-size: 13.5px;
+      }
+
+      summary::-webkit-details-marker {
+        display: none;
+      }
+
+      summary::after {
+        content: "+";
+        color: var(--accent);
+        font-family: var(--font-serif);
+        font-size: 18px;
+        line-height: 1;
+        transition: transform 0.2s ease;
+      }
+
+      details[open] summary::after {
+        transform: rotate(45deg);
+      }
+
+      details p {
+        max-width: 760px;
+        margin: -4px 0 20px;
+        color: var(--muted);
+        font-size: 12.5px;
+        line-height: 1.9;
+      }
+
+      /* ---------- footer ---------- */
+      footer {
+        border-top: 1px solid var(--line);
+        padding: 34px 0 44px;
+        color: var(--muted);
+        font-size: 11.5px;
+      }
+
+      footer .wrap {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+      }
+
+      footer .links {
+        display: flex;
+        gap: 20px;
+      }
+
+      footer a:hover {
+        color: var(--ink);
+      }
+
+      @media (max-width: 900px) {
+        .hero {
+          padding: 52px 0 64px;
+        }
+
+        .hero-grid,
+        .split,
+        .download-card {
+          grid-template-columns: 1fr;
+          gap: 40px;
+        }
+
+        .hero-grid {
+          gap: 48px;
+        }
+
+        .shot {
+          transform: none;
+        }
+
+        .shot-wrap {
+          max-width: 680px;
+          margin: 0 auto;
+        }
+
+        .section-head {
+          display: block;
+        }
+
+        .section-head p {
+          margin-top: 12px;
+        }
+
+        .feature-grid {
+          grid-template-columns: repeat(2, 1fr);
+        }
+
+        .download-card {
+          padding: 30px;
+        }
+      }
+
+      @media (max-width: 620px) {
+        .wrap {
+          width: min(100% - 32px, 1120px);
+        }
+
+        .site-header .wrap {
+          height: 64px;
+        }
+
+        .nav a:not(.gh) {
+          display: none;
+        }
+
+        .hero {
+          padding-top: 38px;
+        }
+
+        h1 {
+          font-size: clamp(36px, 11vw, 46px);
+        }
+
+        .lede {
+          font-size: 14.5px;
+        }
+
+        .feature-grid {
+          grid-template-columns: 1fr;
+        }
+
+        section {
+          padding: 62px 0;
+        }
+
+        .download-card {
+          padding: 24px;
+          border-radius: 18px;
+        }
+
+        .file-row {
+          align-items: flex-start;
+          flex-direction: column;
+          gap: 4px;
+        }
+
+        footer .wrap {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        html {
+          scroll-behavior: auto;
+        }
+
+        *,
+        *::before,
+        *::after {
+          transition: none !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="wrap">
+        <a class="brand" href="#top" aria-label="Elegemory 首页">
+          <img src="assets/icon.png" alt="" width="30" height="30" />
+          Elegemory
+        </a>
+        <nav class="nav" aria-label="主导航">
+          <a href="#features">功能</a>
+          <a href="#privacy">本地优先</a>
+          <a href="#download">下载</a>
+          <a
+            class="gh"
+            href="https://github.com/chovypeng366/Elegemory"
+            target="_blank"
+            rel="noreferrer"
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path
+                d="M12 .7a11.5 11.5 0 0 0-3.64 22.4c.58.1.79-.25.79-.56v-2.2c-3.22.7-3.9-1.37-3.9-1.37-.53-1.34-1.29-1.7-1.29-1.7-1.05-.72.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.04 1.78 2.72 1.27 3.38.97.1-.75.4-1.27.73-1.56-2.57-.29-5.27-1.28-5.27-5.7 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.47.11-3.06 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.77 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.77.11 3.06.74.81 1.19 1.84 1.19 3.1 0 4.43-2.71 5.4-5.29 5.69.42.36.79 1.07.79 2.16v3.2c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .7Z"
+              />
+            </svg>
+            GitHub
+          </a>
+        </nav>
+      </div>
+    </header>
+
+    <main id="top">
+      <section class="hero">
+        <div class="wrap hero-grid">
+          <div>
+            <span class="eyebrow">Windows · 本地优先</span>
+            <h1>把掠过手边的<br />东西，<em>轻轻留住</em>。</h1>
+            <p class="lede">
+              Elegemory 是一款以剪贴板为入口、以时间轴为组织方式的轻量速记应用。
+              截图、文字、待办，按下快捷键就能收好；所有内容<strong>只保存在你自己的电脑里</strong>。
+            </p>
+            <div class="actions">
+              <a
+                class="button primary"
+                href="https://github.com/chovypeng366/Elegemory/releases/download/v0.4.3/elegemory.exe"
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                  <path d="M12 3v12m0 0 4.5-4.5M12 15l-4.5-4.5M4 19.5h16" />
+                </svg>
+                下载 Windows 便携版
+              </a>
+              <a class="button ghost" href="#download">查看安装包与校验</a>
+            </div>
+            <div class="meta-row">
+              <span><i class="dot"></i> v0.4.3</span>
+              <span><i class="dot"></i> Windows 10 / 11 x64</span>
+              <span><i class="dot"></i> 无需账号</span>
+            </div>
+          </div>
+
+          <div class="shot-wrap">
+            <span class="pin" aria-hidden="true"></span>
+            <figure class="shot">
+              <img
+                src="assets/app-board.png"
+                width="1360"
+                height="900"
+                alt="Elegemory 主界面：左侧分类导航，右侧按日期分组的记忆卡片"
+              />
+            </figure>
+            <p class="shot-caption">全部记忆 · 按本地自然日安静地排好</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="features" id="features">
+        <div class="wrap">
+          <div class="section-head">
+            <h2>记录，不需要先创建文档。</h2>
+            <p>
+              从一张截图、一个念头开始。Elegemory 把入口做得很轻，把东西留得很稳。
+            </p>
+          </div>
+
+          <div class="feature-grid">
+            <article class="feature">
+              <span class="icon">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+                  <rect x="3" y="4" width="18" height="16" rx="3" />
+                  <path d="M7 9h10M7 13h7" />
+                </svg>
+              </span>
+              <h3>快捷键速记</h3>
+              <p>按 Ctrl + Shift + Space 唤出速记窗口，写完回车收好，窗口自动退回。</p>
+            </article>
+
+            <article class="feature">
+              <span class="icon">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+                  <rect x="3" y="4" width="18" height="16" rx="3" />
+                  <circle cx="8.5" cy="9" r="1.5" />
+                  <path d="m21 15-4.5-4.5L7 20" />
+                </svg>
+              </span>
+              <h3>截图直接进来</h3>
+              <p>Ctrl + V 粘贴剪贴板图片，或把 PNG / JPEG / WebP 拖进窗口，自动保存到本地。</p>
+            </article>
+
+            <article class="feature">
+              <span class="icon">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+                  <path d="M4 6h16M4 12h16M4 18h10" />
+                  <circle cx="19" cy="18" r="2" />
+                </svg>
+              </span>
+              <h3>待办也能编辑</h3>
+              <p>一行一件事，保存后仍可勾选、修改、增删。办完的事会被轻轻划掉。</p>
+            </article>
+
+            <article class="feature">
+              <span class="icon">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+                  <rect x="3" y="4" width="7" height="7" rx="2" />
+                  <rect x="14" y="4" width="7" height="7" rx="2" />
+                  <rect x="3" y="15" width="7" height="5" rx="2" />
+                  <rect x="14" y="15" width="7" height="5" rx="2" />
+                </svg>
+              </span>
+              <h3>按天排好的白板</h3>
+              <p>按本地自然日分组，今天、昨天和更早的日子各自成组。整张卡片可以拖动换位。</p>
+            </article>
+
+            <article class="feature">
+              <span class="icon">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+                  <path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1" />
+                  <circle cx="12" cy="12" r="3.2" />
+                </svg>
+              </span>
+              <h3>Memory Whisper</h3>
+              <p>每记下一条，页面底部会出现一句安静的情绪短句。不打扰，只是陪你一会儿。</p>
+            </article>
+
+            <article class="feature">
+              <span class="icon">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+                  <path d="M12 3 5 6v5c0 4.4 2.9 8.4 7 10 4.1-1.6 7-5.6 7-10V6l-7-3Z" />
+                  <path d="m9.2 12 1.9 1.9 3.8-4" />
+                </svg>
+              </span>
+              <h3>数据留在本地</h3>
+              <p>正文、待办和图片都保存在本地 SQLite 与资源目录，不需要登录，也不上传云端。</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section id="privacy">
+        <div class="wrap split">
+          <div>
+            <span class="eyebrow">Local first</span>
+            <h2>安静的工具，<br />不替你做决定。</h2>
+            <p class="split-copy">
+              Elegemory 没有账号体系，也没有远程后端。它不分析你写了什么，不会把记录同步到任何地方。
+              你只需要对自己的电脑负责。
+            </p>
+          </div>
+          <ol class="principles">
+            <li>
+              <span class="n">01</span>
+              <div>
+                <h3>本地存储</h3>
+                <p>数据库与图片位于 <code>%APPDATA%\com.elegemory.desktop</code>，升级应用不会清空现有记录。</p>
+              </div>
+            </li>
+            <li>
+              <span class="n">02</span>
+              <div>
+                <h3>不登录，不追踪</h3>
+                <p>没有注册、没有埋点、没有广告。断网也能正常记录和整理。</p>
+              </div>
+            </li>
+            <li>
+              <span class="n">03</span>
+              <div>
+                <h3>删除就是删除</h3>
+                <p>记录先进入回收站；永久删除后，无引用的图片也会从你的设备上清理。</p>
+              </div>
+            </li>
+          </ol>
+        </div>
+      </section>
+
+      <section class="download" id="download">
+        <div class="wrap">
+          <div class="download-card">
+            <div>
+              <span class="version"><i class="live"></i> Latest · v0.4.3</span>
+              <h2>带走一份 Elegemory。</h2>
+              <p>
+                便携版解压即用；安装包适合希望出现在开始菜单和卸载列表里的场景。
+                需要 Windows 10 / 11 x64 与 WebView2 运行时。
+              </p>
+              <div class="actions">
+                <a
+                  class="button primary"
+                  href="https://github.com/chovypeng366/Elegemory/releases/download/v0.4.3/elegemory.exe"
+                >
+                  下载便携版
+                </a>
+                <a
+                  class="button ghost"
+                  href="https://github.com/chovypeng366/Elegemory/releases/latest"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  全部版本
+                </a>
+              </div>
+              <p class="fineprint">
+                应用未做代码签名，首次运行可能出现 SmartScreen 提示：点「更多信息」→「仍要运行」。
+                校验文件见 <a href="https://github.com/chovypeng366/Elegemory/releases/download/v0.4.3/SHA256SUMS.txt">SHA256SUMS.txt</a>。
+              </p>
+            </div>
+
+            <div class="files" aria-label="下载文件">
+              <div class="file-row">
+                <a href="https://github.com/chovypeng366/Elegemory/releases/download/v0.4.3/elegemory.exe">
+                  elegemory.exe
+                  <span class="kind">便携版 · 免安装</span>
+                </a>
+                <span class="size">5.3 MB</span>
+              </div>
+              <div class="file-row">
+                <a href="https://github.com/chovypeng366/Elegemory/releases/download/v0.4.3/Elegemory_0.4.3_x64_en-US.msi">
+                  Elegemory_0.4.3_x64_en-US.msi
+                  <span class="kind">MSI 安装包</span>
+                </a>
+                <span class="size">2.9 MB</span>
+              </div>
+              <div class="file-row">
+                <a href="https://github.com/chovypeng366/Elegemory/releases/download/v0.4.3/Elegemory_0.4.3_x64-setup.exe">
+                  Elegemory_0.4.3_x64-setup.exe
+                  <span class="kind">NSIS 安装包</span>
+                </a>
+                <span class="size">2.1 MB</span>
+              </div>
+              <div class="file-row">
+                <a href="https://github.com/chovypeng366/Elegemory/releases/tag/v0.4.3">
+                  版本说明与校验
+                  <span class="kind">GitHub Release</span>
+                </a>
+                <span class="size">v0.4.3</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="faq">
+        <div class="wrap">
+          <div class="section-head">
+            <h2>常见问题</h2>
+            <p>第一次打开前，可能会想知道这些。</p>
+          </div>
+          <div class="faq-list">
+            <details>
+              <summary>需要安装什么运行环境？</summary>
+              <p>
+                Windows 10 / 11 通常已自带 WebView2。如果启动后白屏，安装 Microsoft Edge WebView2 Runtime 后重试即可。
+              </p>
+            </details>
+            <details>
+              <summary>数据保存在哪里？</summary>
+              <p>
+                默认在 <code>%APPDATA%\com.elegemory.desktop</code>：数据库为 <code>elegemory.db</code>，图片在
+                <code>assets</code> 目录。删除便携版 exe 不会删除这些数据。
+              </p>
+            </details>
+            <details>
+              <summary>为什么首次运行会被 SmartScreen 拦截？</summary>
+              <p>
+                因为当前构建没有购买代码签名证书。确认文件来自本页或 GitHub Release 后，可以点「更多信息」→「仍要运行」。
+              </p>
+            </details>
+            <details>
+              <summary>关闭窗口后应用去哪了？</summary>
+              <p>
+                关闭主窗口会把 Elegemory 收进系统托盘，这是托盘应用的预期行为。要完全退出，请使用托盘菜单或设置里的「退出 Elegemory」。
+              </p>
+            </details>
+            <details>
+              <summary>以后会支持 macOS 吗？</summary>
+              <p>
+                当前优先做好 Windows。后续计划包括 macOS 适配、标签与每日回顾，以及可选的 AI 整理能力（默认关闭）。
+              </p>
+            </details>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <div class="wrap">
+        <span>© <span id="year">2026</span> Elegemory · 记录不应当需要创建文档。</span>
+        <span class="links">
+          <a href="https://github.com/chovypeng366/Elegemory" target="_blank" rel="noreferrer">GitHub</a>
+          <a href="https://github.com/chovypeng366/Elegemory/releases" target="_blank" rel="noreferrer">Releases</a>
+          <a href="#top">回到顶部</a>
+        </span>
+      </div>
+    </footer>
+
+    <script>
+      document.getElementById("year").textContent = new Date().getFullYear();
+    </script>
+  </body>
+</html>
