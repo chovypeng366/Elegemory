@@ -1,16 +1,21 @@
 import { useEffect, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import { AnimatePresence, motion, useDragControls } from "motion/react";
 import {
+  AlignLeft,
   Archive,
   Check,
   Copy,
   ImageDown,
   ListTodo,
+  Loader2,
   Pin,
   Plus,
   RotateCcw,
+  Sparkles,
   Star,
   Trash2,
+  Type,
   X,
 } from "lucide-react";
 import { IconButton } from "../../components/IconButton";
@@ -24,6 +29,8 @@ import {
   typeLabel,
 } from "../../lib/utils";
 import { copyImageToClipboard, copyTextToClipboard } from "../../services/clipboard";
+import { deepSeekProvider } from "../../services/ai/provider";
+import { useAiStore } from "../../stores/aiStore";
 import { useNotesStore } from "../../stores/notesStore";
 import { useUiStore } from "../../stores/uiStore";
 import type { NoteBlock } from "../../types";
@@ -52,6 +59,19 @@ export function NoteDetailDrawer() {
   const syncedNoteId = useRef<string | null>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
   const dragControls = useDragControls();
+  const aiStatus = useAiStore((state) => state.status);
+  const refreshAi = useAiStore((state) => state.refresh);
+  const [aiBusy, setAiBusy] = useState<"title" | "summary" | "todos" | null>(null);
+  const [aiSummary, setAiSummary] = useState("");
+
+  useEffect(() => {
+    if (note) void refreshAi();
+  }, [note?.id, refreshAi]);
+
+  useEffect(() => {
+    setAiSummary("");
+    setAiBusy(null);
+  }, [note?.id]);
 
   useEffect(() => {
     if (note && syncedNoteId.current !== note.id) {
@@ -63,6 +83,51 @@ export function NoteDetailDrawer() {
 
   const archived = note?.isArchived ?? false;
   const image = note ? firstImage(note) : null;
+  const aiText = note
+    ? note.blocks
+        .filter((block) => block.blockType !== "image" && block.content.trim())
+        .map((block) => block.content.trim())
+        .join("\n\n")
+    : "";
+  const aiReady = Boolean(
+    !archived && aiText && aiStatus?.configured && aiStatus.enabled,
+  );
+
+  const handleAi = async (action: "title" | "summary" | "todos") => {
+    if (!note || !aiText || aiBusy) return;
+    setAiBusy(action);
+    try {
+      if (action === "title") {
+        const generated = await deepSeekProvider.suggestTitle(aiText);
+        const updated = await updateTitle(note.id, generated);
+        if (updated) {
+          setTitle(generated);
+          pushToast("标题已生成", "success");
+        }
+      } else if (action === "summary") {
+        setAiSummary(await deepSeekProvider.summarize([note]));
+      } else {
+        const todos = await deepSeekProvider.extractTodos(aiText);
+        if (!todos.length) {
+          pushToast("没有找到明确的待办", "info");
+          return;
+        }
+        let added = 0;
+        for (const content of todos) {
+          const updated = await addBlock(note.id, { blockType: "todo", content });
+          if (updated) added += 1;
+        }
+        pushToast(
+          added ? `已添加 ${added} 条待办` : "待办添加失败",
+          added ? "success" : "error",
+        );
+      }
+    } catch (error) {
+      pushToast(errorMessage(error), "error");
+    } finally {
+      setAiBusy(null);
+    }
+  };
 
   const commitTitle = async () => {
     if (!note) return;
@@ -76,6 +141,15 @@ export function NoteDetailDrawer() {
     try {
       await copyTextToClipboard(notePlainText(note));
       pushToast("文字已复制到剪贴板", "success");
+    } catch (error) {
+      pushToast(errorMessage(error), "error");
+    }
+  };
+
+  const handleCopySummary = async () => {
+    try {
+      await copyTextToClipboard(aiSummary);
+      pushToast("摘要已复制", "success");
     } catch (error) {
       pushToast(errorMessage(error), "error");
     }
@@ -241,6 +315,58 @@ export function NoteDetailDrawer() {
                 />
               )}
 
+              {aiReady && (
+                <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                  <span className="mr-1 flex items-center gap-1 text-[9px] font-medium uppercase tracking-[0.16em] text-accent-deep/75">
+                    <Sparkles size={10} />
+                    AI
+                  </span>
+                  <AiButton
+                    label="生成标题"
+                    icon={<Type size={11} />}
+                    loading={aiBusy === "title"}
+                    disabled={aiBusy !== null}
+                    onClick={() => void handleAi("title")}
+                  />
+                  <AiButton
+                    label="生成摘要"
+                    icon={<AlignLeft size={11} />}
+                    loading={aiBusy === "summary"}
+                    disabled={aiBusy !== null}
+                    onClick={() => void handleAi("summary")}
+                  />
+                  <AiButton
+                    label="提取待办"
+                    icon={<ListTodo size={11} />}
+                    loading={aiBusy === "todos"}
+                    disabled={aiBusy !== null}
+                    onClick={() => void handleAi("todos")}
+                  />
+                </div>
+              )}
+
+              {aiSummary && (
+                <div className="mt-3 rounded-xl border border-accent/20 bg-accent/[0.045] p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="flex items-center gap-1.5 text-[9px] font-medium uppercase tracking-[0.16em] text-accent-deep/75">
+                      <Sparkles size={10} />
+                      AI 摘要
+                    </span>
+                    <div className="flex items-center gap-0.5">
+                      <IconButton label="复制摘要" onClick={() => void handleCopySummary()}>
+                        <Copy size={12} />
+                      </IconButton>
+                      <IconButton label="关闭摘要" onClick={() => setAiSummary("")}>
+                        <X size={12} />
+                      </IconButton>
+                    </div>
+                  </div>
+                  <p className="mt-2 whitespace-pre-wrap text-[12.5px] leading-6 text-ink/80">
+                    {aiSummary}
+                  </p>
+                </div>
+              )}
+
               <div className="mt-5 space-y-2.5">
                 {note.blocks.map((block) =>
                   block.blockType === "image" ? (
@@ -340,6 +466,32 @@ export function NoteDetailDrawer() {
         </motion.div>
       )}
     </AnimatePresence>
+  );
+}
+
+function AiButton({
+  label,
+  icon,
+  loading,
+  disabled,
+  onClick,
+}: {
+  label: string;
+  icon: ReactNode;
+  loading: boolean;
+  disabled: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={onClick}
+      className="ghost-button focus-ring flex h-7 items-center gap-1.5 rounded-lg px-2.5 text-[10px] transition-colors hover:text-ink disabled:cursor-wait disabled:opacity-55"
+    >
+      {loading ? <Loader2 size={11} className="animate-spin" /> : icon}
+      {loading ? "处理中…" : label}
+    </button>
   );
 }
 

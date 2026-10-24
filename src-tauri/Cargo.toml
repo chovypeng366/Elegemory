@@ -1,6 +1,6 @@
 [package]
 name = "elegemory"
-version = "0.4.3"
+version = "0.5.0"
 description = "Elegemory - 以剪贴板为入口的轻量速记应用"
 authors = ["Elegemory"]
 edition = "2021"
@@ -25,6 +25,11 @@ uuid = { version = "1", features = ["v4"] }
 base64 = "0.23"
 chrono = { version = "0.4", features = ["clock"] }
 image = { version = "0.25", default-features = false, features = ["png", "jpeg", "webp"] }
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+keyring = { version = "3", features = ["windows-native"] }
+
+[dev-dependencies]
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 
 [profile.release]
 panic = "abort"

@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import {
-  Bot,
   Check,
   Database,
   FolderOpen,
@@ -40,6 +39,7 @@ import {
 } from "../../stores/settingsStore";
 import { useUiStore } from "../../stores/uiStore";
 import { WhisperSettings } from "./WhisperSettings";
+import { AiSettings } from "./AiSettings";
 
 export function SettingsDialog() {
   const open = useUiStore((state) => state.settingsOpen);
@@ -187,7 +187,7 @@ export function SettingsDialog() {
               <div>
                 <h2 className="font-serif text-[21px] tracking-[0.02em] text-ink">设置</h2>
                 <p className="mt-1 text-[10.5px] text-muted/70">
-                  快捷键、外观与本地数据
+                  快捷键、外观、AI 与本地数据
                 </p>
               </div>
               <IconButton label="关闭" onClick={close}>
@@ -247,7 +247,7 @@ export function SettingsDialog() {
                     <Stat label="回收站" value={appInfo?.archivedCount ?? 0} />
                     <span className="flex items-center gap-1 rounded-md bg-pin/10 px-2 py-1 text-[9.5px] text-pin">
                       <ShieldCheck size={10} />
-                      SQLite · 仅本机
+                      SQLite · 本地存储
                     </span>
                   </div>
                 </div>
@@ -432,19 +432,7 @@ export function SettingsDialog() {
 
               <WhisperSettings />
 
-              <Section icon={<Bot size={14} />} title="AI 能力（预留）">
-                <div className="rounded-xl border border-dashed border-line bg-canvas/30 px-3.5 py-3">
-                  <div className="flex items-center justify-between">
-                    <p className="text-[11.5px] text-ink/80">智能标题与整理</p>
-                    <span className="rounded-full bg-ink/5 px-2 py-0.5 text-[9.5px] tracking-[0.06em] text-muted/70">
-                      未启用
-                    </span>
-                  </div>
-                  <p className="mt-1.5 text-[10.5px] leading-5 text-muted/65">
-                    未来将接入可配置的 AI Provider。只有在你明确触发时才会发送指定内容，默认保持关闭。
-                  </p>
-                </div>
-              </Section>
+              <AiSettings />
 
               <Section icon={<LogOut size={14} />} title="退出">
                 <div className="flex items-center justify-between rounded-xl border border-line/70 bg-photo/45 px-3.5 py-3">
@@ -465,7 +453,7 @@ export function SettingsDialog() {
 
             <footer className="flex shrink-0 items-center justify-between border-t border-line/70 px-6 py-3 text-[9.5px] text-muted/55">
               <span>Elegemory v{appInfo?.version ?? "0.1.0"}</span>
-              <span>本地优先 · 无账号 · 离线可用</span>
+              <span>本地优先 · 无账号 · AI 可选</span>
             </footer>
           </motion.div>
         </motion.div>

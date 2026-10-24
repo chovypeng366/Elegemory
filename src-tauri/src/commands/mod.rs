@@ -1,3 +1,4 @@
+pub mod ai;
 pub mod assets;
 pub mod notes;
 pub mod settings;

@@ -8,14 +8,14 @@ Elegemory 是一款以剪贴板为入口、以时间轴为组织方式的 Window
 
 ## 下载
 
-最新版本：**v0.4.3** · Windows 10 / 11 x64
+最新版本：**v0.5.0** · Windows 10 / 11 x64
 
 | 文件 | 说明 |
 | --- | --- |
-| [elegemory.exe](https://github.com/chovypeng366/Elegemory/releases/download/v0.4.3/elegemory.exe) | 便携版，下载后直接运行，无需安装 |
-| [Elegemory_0.4.3_x64-setup.exe](https://github.com/chovypeng366/Elegemory/releases/download/v0.4.3/Elegemory_0.4.3_x64-setup.exe) | NSIS 安装包 |
-| [Elegemory_0.4.3_x64_en-US.msi](https://github.com/chovypeng366/Elegemory/releases/download/v0.4.3/Elegemory_0.4.3_x64_en-US.msi) | MSI 安装包 |
-| [SHA256SUMS.txt](https://github.com/chovypeng366/Elegemory/releases/download/v0.4.3/SHA256SUMS.txt) | 文件校验值 |
+| [elegemory.exe](https://github.com/chovypeng366/Elegemory/releases/download/v0.5.0/elegemory.exe) | 便携版，下载后直接运行，无需安装 |
+| [Elegemory_0.5.0_x64-setup.exe](https://github.com/chovypeng366/Elegemory/releases/download/v0.5.0/Elegemory_0.5.0_x64-setup.exe) | NSIS 安装包 |
+| [Elegemory_0.5.0_x64_en-US.msi](https://github.com/chovypeng366/Elegemory/releases/download/v0.5.0/Elegemory_0.5.0_x64_en-US.msi) | MSI 安装包 |
+| [SHA256SUMS.txt](https://github.com/chovypeng366/Elegemory/releases/download/v0.5.0/SHA256SUMS.txt) | 文件校验值 |
 
 也可以访问 [Releases](https://github.com/chovypeng366/Elegemory/releases/latest) 查看全部版本与更新说明。
 
@@ -55,6 +55,14 @@ Elegemory 是一款以剪贴板为入口、以时间轴为组织方式的 Window
 - 每次新增笔记或待办后，白板底部会出现一句简短的情绪文案，停留几秒后淡出，不堆叠、不弹窗。
 - 文案内容、出现时机和一些小惊喜，留给使用过程中慢慢发现。
 
+### AI 整理（可选）
+
+- 在笔记详情中可以按需生成标题、生成摘要，或从文字中提取待办。
+- 使用 DeepSeek API，需要自行填写 API 密钥；AI 功能默认关闭。
+- 密钥保存在 Windows 凭据管理器，不写入数据库或前端代码。
+- 只有点击 AI 按钮时，当前记录的文字才会发送给 DeepSeek；图片不会被上传，也不会在后台自动请求。
+- 生成结果可以在保存前预览或编辑，是否采用由你决定。
+
 ### 外观与设置
 
 - 纸张主题：暖纸、雾蓝、沙丘、陶土。
@@ -63,6 +71,7 @@ Elegemory 是一款以剪贴板为入口、以时间轴为组织方式的 Window
 - 可以修改速记快捷键，保存失败时会恢复旧快捷键。
 - 拒绝没有修饰键的快捷键以及 `Ctrl+C` / `Ctrl+V`，避免全局劫持系统复制粘贴。
 - 可以查看数据目录、记录数量、图片数量和回收站数量。
+- AI 整理：保存或移除 DeepSeek API 密钥、测试连接；密钥存于 Windows 凭据管理器，默认关闭。
 - 支持 `prefers-reduced-motion`，系统开启减弱动效时会跳过入场动画。
 
 ## 技术栈
@@ -75,6 +84,7 @@ Elegemory 是一款以剪贴板为入口、以时间轴为组织方式的 Window
 | 动画 | Motion for React |
 | 状态 | Zustand |
 | 数据库 | SQLite（rusqlite，内置迁移） |
+| AI（可选） | DeepSeek API + Windows 凭据管理器 |
 | 图标 | Lucide |
 
 剪贴板使用 `tauri-plugin-clipboard-manager`，全局快捷键使用 `tauri-plugin-global-shortcut`，单实例使用 `tauri-plugin-single-instance`。数据库访问、图片落盘和文件清理由 Rust 命令层负责。
@@ -158,7 +168,8 @@ Elegemory/
 │  │  └─ settings/              # 设置弹窗与 Memory Whisper 设置
 │  ├─ lib/                      # 日期工具、词库、低语引擎、资源 URL
 │  ├─ services/                 # Tauri 命令、剪贴板、系统事件、开发预览数据
-│  ├─ stores/                   # Zustand：笔记、界面、设置、低语
+│  │  └─ ai/provider.ts         # DeepSeek Provider 与密钥状态
+│  ├─ stores/                   # Zustand：笔记、界面、设置、低语、AI
 │  ├─ styles/global.css         # 设计变量、纸张纹理、磁扣、按钮
 │  └─ types/                    # TypeScript 数据模型
 ├─ src-tauri/
@@ -175,6 +186,7 @@ Elegemory/
 │  │  │  ├─ assets.rs           # 图片校验、编码、落盘
 │  │  │  ├─ settings.rs         # 设置与快捷键
 │  │  │  ├─ whisper.rs          # 低语统计、历史与设置
+│  │  │  ├─ ai.rs               # DeepSeek 请求、密钥与 AI 结果解析
 │  │  │  └─ system.rs           # 窗口与退出
 │  │  └─ lib.rs                 # 插件、迁移、快捷键、窗口生命周期
 │  └─ tauri.conf.json
@@ -258,7 +270,7 @@ npm run tauri build -- --no-bundle
 - 标签、每日回顾与更完整的导出能力。
 - 明暗主题与更细腻的纸张材质。
 - 图片资源回收站与孤儿资源清理。
-- 可选的 AI Provider：自动标题、摘要、待办整理与标签推荐，默认关闭，由用户主动触发。
+- 可选的 AI 能力：标签推荐、批量整理与流式输出，默认关闭，由用户主动触发。
 
 ## 反馈
 
