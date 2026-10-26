@@ -117,3 +117,53 @@ pub struct AppInfo {
     pub archived_count: i64,
     pub asset_count: i64,
 }
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MemoryEcho {
+    pub note: Note,
+    pub days_ago: i64,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NoteLinkEntry {
+    pub note: Note,
+    pub linked_at: i64,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LinkSuggestion {
+    pub note: Note,
+    pub days_ago: i64,
+    pub reason: Option<String>,
+    pub source: String,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GraphNode {
+    pub id: String,
+    pub title: String,
+    pub note_type: String,
+    pub created_at: i64,
+    pub is_favorite: bool,
+    pub degree: i64,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GraphEdge {
+    pub source: String,
+    pub target: String,
+    pub created_at: i64,
+    pub created_by: String,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LinkGraph {
+    pub nodes: Vec<GraphNode>,
+    pub edges: Vec<GraphEdge>,
+}

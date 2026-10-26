@@ -4,8 +4,12 @@ import type {
   Asset,
   CreateNoteInput,
   CreateNoteResult,
+  LinkGraph,
+  LinkSuggestion,
+  MemoryEcho,
   NewBlockInput,
   Note,
+  NoteLinkEntry,
 } from "../types";
 import type { WhisperHistoryEntry } from "../lib/whisperEngine";
 import { isTauri } from "./env";
@@ -102,6 +106,18 @@ export const api = {
       : mockBackend.saveImageAsset(base64);
   },
 
+  getAssetDataUrl(assetId: string): Promise<string> {
+    return isTauri()
+      ? invoke<string>("get_asset_data_url", { assetId })
+      : mockBackend.getAssetDataUrl(assetId);
+  },
+
+  savePngData(dataUrl: string, fileName: string): Promise<string | null> {
+    return isTauri()
+      ? invoke<string | null>("save_png_data", { dataUrl, fileName })
+      : mockBackend.savePngData(dataUrl, fileName);
+  },
+
   importImagePath(path: string): Promise<Asset> {
     return isTauri()
       ? invoke<Asset>("import_image_path", { path })
@@ -112,6 +128,62 @@ export const api = {
     return isTauri()
       ? invoke<Record<string, string>>("get_settings")
       : mockBackend.getSettings();
+  },
+
+  getMemoryEcho(): Promise<MemoryEcho | null> {
+    return isTauri()
+      ? invoke<MemoryEcho | null>("get_memory_echo")
+      : mockBackend.getMemoryEcho();
+  },
+
+  markNoteOpened(id: string): Promise<void> {
+    return isTauri()
+      ? invoke<void>("mark_note_opened", { id })
+      : mockBackend.markNoteOpened(id);
+  },
+
+  listNoteLinks(noteId: string): Promise<NoteLinkEntry[]> {
+    return isTauri()
+      ? invoke<NoteLinkEntry[]>("list_note_links", { noteId })
+      : mockBackend.listNoteLinks(noteId);
+  },
+
+  createNoteLink(
+    noteId: string,
+    relatedId: string,
+    source: "manual" | "suggested" = "manual",
+  ): Promise<NoteLinkEntry[]> {
+    return isTauri()
+      ? invoke<NoteLinkEntry[]>("create_note_link", {
+          noteId,
+          relatedId,
+          source,
+        })
+      : mockBackend.createNoteLink(noteId, relatedId, source);
+  },
+
+  deleteNoteLink(noteId: string, relatedId: string): Promise<NoteLinkEntry[]> {
+    return isTauri()
+      ? invoke<NoteLinkEntry[]>("delete_note_link", { noteId, relatedId })
+      : mockBackend.deleteNoteLink(noteId, relatedId);
+  },
+
+  findLinkSuggestions(noteId: string): Promise<LinkSuggestion[]> {
+    return isTauri()
+      ? invoke<LinkSuggestion[]>("find_link_suggestions", { noteId })
+      : mockBackend.findLinkSuggestions(noteId);
+  },
+
+  findAiLinkSuggestions(noteId: string): Promise<LinkSuggestion[]> {
+    return isTauri()
+      ? invoke<LinkSuggestion[]>("find_ai_link_suggestions", { noteId })
+      : mockBackend.findAiLinkSuggestions(noteId);
+  },
+
+  getLinkGraph(noteId?: string): Promise<LinkGraph> {
+    return isTauri()
+      ? invoke<LinkGraph>("get_link_graph", { noteId: noteId ?? null })
+      : mockBackend.getLinkGraph(noteId);
   },
 
   setSetting(key: string, value: string): Promise<void> {

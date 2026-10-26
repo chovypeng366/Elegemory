@@ -4,6 +4,7 @@ import { AnimatePresence, motion, useDragControls } from "motion/react";
 import {
   AlignLeft,
   Archive,
+  ArrowLeft,
   Check,
   Copy,
   ImageDown,
@@ -29,17 +30,23 @@ import {
   typeLabel,
 } from "../../lib/utils";
 import { copyImageToClipboard, copyTextToClipboard } from "../../services/clipboard";
+import { api } from "../../services/api";
 import { deepSeekProvider } from "../../services/ai/provider";
 import { useAiStore } from "../../stores/aiStore";
 import { useNotesStore } from "../../stores/notesStore";
 import { useUiStore } from "../../stores/uiStore";
 import type { NoteBlock } from "../../types";
+import { NoteThreads } from "./NoteThreads";
 
 export function NoteDetailDrawer() {
   const selectedId = useUiStore((state) => state.selectedNoteId);
   const closeNote = useUiStore((state) => state.closeNote);
   const pushToast = useUiStore((state) => state.pushToast);
   const requestConfirm = useUiStore((state) => state.requestConfirm);
+  const noteReturnGraphFocus = useUiStore(
+    (state) => state.noteReturnGraphFocus,
+  );
+  const returnToLinkGraph = useUiStore((state) => state.returnToLinkGraph);
 
   const note = useNotesStore(
     (state) => state.notes.find((item) => item.id === selectedId) ?? null,
@@ -67,6 +74,10 @@ export function NoteDetailDrawer() {
   useEffect(() => {
     if (note) void refreshAi();
   }, [note?.id, refreshAi]);
+
+  useEffect(() => {
+    if (note) void api.markNoteOpened(note.id);
+  }, [note?.id]);
 
   useEffect(() => {
     setAiSummary("");
@@ -238,6 +249,16 @@ export function NoteDetailDrawer() {
               className="flex shrink-0 cursor-grab touch-none select-none items-start justify-between px-6 pb-3 pt-5 active:cursor-grabbing"
             >
               <div className="min-w-0">
+                {noteReturnGraphFocus && (
+                  <button
+                    type="button"
+                    onClick={returnToLinkGraph}
+                    className="focus-ring mb-2 flex items-center gap-1 rounded-md text-[9.5px] font-medium tracking-[0.03em] text-accent-deep/75 transition-colors hover:text-accent-deep"
+                  >
+                    <ArrowLeft size={11} />
+                    返回图谱
+                  </button>
+                )}
                 <div className="flex items-center gap-2 text-[9.5px] font-medium uppercase tracking-[0.2em] text-muted/60">
                   <span>记录详情</span>
                   {archived && (
@@ -406,6 +427,8 @@ export function NoteDetailDrawer() {
                   </button>
                 </div>
               )}
+
+              <NoteThreads note={note} archived={archived} />
             </div>
 
             <footer className="shrink-0 border-t border-line/70 px-6 py-3">

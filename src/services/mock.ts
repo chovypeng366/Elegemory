@@ -3,8 +3,14 @@ import type {
   Asset,
   CreateNoteInput,
   CreateNoteResult,
+  GraphEdge,
+  GraphNode,
+  LinkGraph,
+  LinkSuggestion,
+  MemoryEcho,
   Note,
   NoteBlock,
+  NoteLinkEntry,
   NoteType,
   NewBlockInput,
   WhisperFeedback,
@@ -16,7 +22,57 @@ const STORAGE_KEY = "elegemory.dev.notes.v1";
 const SETTINGS_KEY = "elegemory.dev.settings.v1";
 const WHISPER_STATS_KEY = "elegemory.dev.whisper.stats.v1";
 const WHISPER_HISTORY_KEY = "elegemory.dev.whisper.history.v1";
+const LINKS_KEY = "elegemory.dev.links.v1";
 const MOCK_MOODS = ["Warm", "Poetic", "Playful", "Calm", "Cozy", "Reflective"];
+
+interface MockLink {
+  a: string;
+  b: string;
+  createdAt: number;
+}
+
+function readLinks(): MockLink[] {
+  try {
+    return JSON.parse(localStorage.getItem(LINKS_KEY) || "[]") as MockLink[];
+  } catch {
+    return [];
+  }
+}
+
+function writeLinks(links: MockLink[]) {
+  localStorage.setItem(LINKS_KEY, JSON.stringify(links));
+}
+
+function canonicalLink(a: string, b: string): { a: string; b: string } {
+  return a < b ? { a, b } : { a: b, b: a };
+}
+
+function connectedMockEdges(edges: GraphEdge[], focusId: string): GraphEdge[] {
+  if (!edges.some((edge) => edge.source === focusId || edge.target === focusId)) {
+    return [];
+  }
+  const adjacency = new Map<string, string[]>();
+  const add = (from: string, to: string) => {
+    adjacency.set(from, [...(adjacency.get(from) ?? []), to]);
+  };
+  for (const edge of edges) {
+    add(edge.source, edge.target);
+    add(edge.target, edge.source);
+  }
+  const visited = new Set<string>();
+  const stack = [focusId];
+  while (stack.length > 0) {
+    const current = stack.pop();
+    if (!current || visited.has(current)) continue;
+    visited.add(current);
+    for (const neighbour of adjacency.get(current) ?? []) {
+      if (!visited.has(neighbour)) stack.push(neighbour);
+    }
+  }
+  return edges.filter(
+    (edge) => visited.has(edge.source) && visited.has(edge.target),
+  );
+}
 
 interface MockDailyStats {
   note_created_count: number;
@@ -244,6 +300,186 @@ export const mockBackend = {
     return clone(load());
   },
 
+  async getMemoryEcho(): Promise<MemoryEcho | null> {
+    const notes = load()
+      .filter(
+        (note) =>
+          !note.isArchived &&
+          note.blocks.some(
+            (block) => block.blockType !== "image" && block.content.trim(),
+          ),
+      )
+      .sort((left, right) => left.createdAt - right.createdAt);
+    const note = notes[0];
+    if (!note) return null;
+    return {
+      note: clone(note),
+      daysAgo: Math.max(1, Math.floor((Date.now() - note.createdAt) / 86_400_000)),
+    };
+  },
+
+  async markNoteOpened(_id: string): Promise<void> {
+    // preview mode does not need opened timestamps
+  },
+
+  async listNoteLinks(noteId: string): Promise<NoteLinkEntry[]> {
+    const notes = load();
+    return readLinks()
+      .filter((link) => link.a === noteId || link.b === noteId)
+      .map((link) => {
+        const partnerId = link.a === noteId ? link.b : link.a;
+        const note = notes.find((item) => item.id === partnerId);
+        return note ? { note: clone(note), linkedAt: link.createdAt } : null;
+      })
+      .filter((entry): entry is NoteLinkEntry => entry !== null)
+      .sort((left, right) => left.note.createdAt - right.note.createdAt);
+  },
+
+  async createNoteLink(
+    noteId: string,
+    relatedId: string,
+    _source: "manual" | "suggested",
+  ): Promise<NoteLinkEntry[]> {
+    const pair = canonicalLink(noteId, relatedId);
+    const links = readLinks();
+    if (!links.some((link) => link.a === pair.a && link.b === pair.b)) {
+      links.push({ ...pair, createdAt: Date.now() });
+      writeLinks(links);
+    }
+    return this.listNoteLinks(noteId);
+  },
+
+  async deleteNoteLink(
+    noteId: string,
+    relatedId: string,
+  ): Promise<NoteLinkEntry[]> {
+    const pair = canonicalLink(noteId, relatedId);
+    writeLinks(
+      readLinks().filter(
+        (link) => !(link.a === pair.a && link.b === pair.b),
+      ),
+    );
+    return this.listNoteLinks(noteId);
+  },
+
+  async findLinkSuggestions(noteId: string): Promise<LinkSuggestion[]> {
+    const links = await this.listNoteLinks(noteId);
+    const linked = new Set(links.map((entry) => entry.note.id));
+    const candidate = load()
+      .filter(
+        (note) =>
+          note.id !== noteId &&
+          !note.isArchived &&
+          !linked.has(note.id) &&
+          note.blocks.some(
+            (block) => block.blockType !== "image" && block.content.trim(),
+          ),
+      )
+      .sort((left, right) => left.createdAt - right.createdAt)[0];
+    if (!candidate) return [];
+    return [
+      {
+        note: clone(candidate),
+        daysAgo: Math.max(
+          1,
+          Math.floor((Date.now() - candidate.createdAt) / 86_400_000),
+        ),
+        reason: null,
+        source: "local",
+      },
+    ];
+  },
+
+  async findAiLinkSuggestions(noteId: string): Promise<LinkSuggestion[]> {
+    const local = await this.findLinkSuggestions(noteId);
+    if (local.length > 0) {
+      return local.map((suggestion) => ({
+        ...suggestion,
+        source: "ai" as const,
+        reason: "都可能在讨论同一段经历或同一个项目",
+      }));
+    }
+    const candidate = load().find(
+      (note) =>
+        note.id !== noteId &&
+        !note.isArchived &&
+        note.blocks.some(
+          (block) => block.blockType !== "image" && block.content.trim(),
+        ),
+    );
+    if (!candidate) return [];
+    return [
+      {
+        note: clone(candidate),
+        daysAgo: 5,
+        reason: "内容与当前记录可能相关",
+        source: "ai",
+      },
+    ];
+  },
+
+  async getLinkGraph(noteId?: string): Promise<LinkGraph> {
+    const notes = load();
+    const byId = new Map(notes.map((note) => [note.id, note]));
+    const links = readLinks();
+    let edges: GraphEdge[] = links
+      .filter((link) => byId.has(link.a) && byId.has(link.b))
+      .map((link) => ({
+        source: link.a,
+        target: link.b,
+        createdAt: link.createdAt,
+        createdBy: "manual" as const,
+      }));
+
+    if (edges.length === 0) {
+      const demo = notes
+        .filter(
+          (note) =>
+            !note.isArchived &&
+            note.blocks.some(
+              (block) => block.blockType !== "image" && block.content.trim(),
+            ),
+        )
+        .slice(0, 8);
+      edges = [];
+      for (let start = 0; start < demo.length; start += 3) {
+        const group = demo.slice(start, start + 3);
+        for (let index = 0; index < group.length - 1; index += 1) {
+          edges.push({
+            source: group[index].id,
+            target: group[index + 1].id,
+            createdAt: Date.now() - (start + index) * 60_000,
+            createdBy: "manual" as const,
+          });
+        }
+      }
+    }
+
+    if (noteId) {
+      edges = connectedMockEdges(edges, noteId);
+    }
+
+    const degree = new Map<string, number>();
+    for (const edge of edges) {
+      degree.set(edge.source, (degree.get(edge.source) ?? 0) + 1);
+      degree.set(edge.target, (degree.get(edge.target) ?? 0) + 1);
+    }
+    const nodes: GraphNode[] = Array.from(degree.keys())
+      .map((id) => byId.get(id))
+      .filter((note): note is Note => Boolean(note))
+      .map((note) => ({
+        id: note.id,
+        title: note.title,
+        type: note.type,
+        createdAt: note.createdAt,
+        isFavorite: note.isFavorite,
+        degree: degree.get(note.id) ?? 0,
+      }))
+      .sort((left, right) => left.createdAt - right.createdAt);
+
+    return { nodes, edges };
+  },
+
   async createNote(input: CreateNoteInput): Promise<CreateNoteResult> {
     const notes = load();
     const noteId = uuid();
@@ -461,6 +697,27 @@ export const mockBackend = {
 
   async importImagePath(): Promise<Asset> {
     throw new Error("浏览器预览模式不支持读取本地路径，请直接在窗口中拖入图片");
+  },
+
+  async getAssetDataUrl(assetId: string): Promise<string> {
+    for (const note of load()) {
+      for (const block of note.blocks) {
+        if (block.asset?.id === assetId) return block.asset.path;
+      }
+    }
+    const asset = assetRegistry.get(assetId);
+    if (asset) return asset.path;
+    throw new Error("图片资源不存在");
+  },
+
+  async savePngData(dataUrl: string, fileName: string): Promise<string | null> {
+    const link = document.createElement("a");
+    link.href = dataUrl;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    return fileName;
   },
 
   async getSettings(): Promise<Record<string, string>> {

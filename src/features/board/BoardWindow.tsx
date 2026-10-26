@@ -27,8 +27,11 @@ import { useWhisperStore } from "../../stores/whisperStore";
 import { WhisperBar } from "../../components/WhisperBar";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
 import { NoteDetailDrawer } from "../notes/NoteDetailDrawer";
+import { LinkGraphDialog } from "../notes/LinkGraphDialog";
 import { SettingsDialog } from "../settings/SettingsDialog";
 import { BoardHeader } from "./BoardHeader";
+import { DayCanvas } from "./DayCanvas";
+import { MemoryEchoCard } from "./MemoryEchoCard";
 import { Sidebar } from "./Sidebar";
 import { Timeline } from "./Timeline";
 import { WindowChrome } from "./WindowChrome";
@@ -235,8 +238,11 @@ export function BoardWindow() {
         </main>
       </div>
 
+      <MemoryEchoCard />
       <WhisperBar />
       <NoteDetailDrawer />
+      <DayCanvas />
+      <LinkGraphDialog />
       <SettingsDialog />
       <ConfirmDialog />
     </div>

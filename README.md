@@ -8,14 +8,14 @@ Elegemory 是一款以剪贴板为入口、以时间轴为组织方式的 Window
 
 ## 下载
 
-最新版本：**v0.5.0** · Windows 10 / 11 x64
+最新版本：**v0.6.0** · Windows 10 / 11 x64
 
 | 文件 | 说明 |
 | --- | --- |
-| [elegemory.exe](https://github.com/chovypeng366/Elegemory/releases/download/v0.5.0/elegemory.exe) | 便携版，下载后直接运行，无需安装 |
-| [Elegemory_0.5.0_x64-setup.exe](https://github.com/chovypeng366/Elegemory/releases/download/v0.5.0/Elegemory_0.5.0_x64-setup.exe) | NSIS 安装包 |
-| [Elegemory_0.5.0_x64_en-US.msi](https://github.com/chovypeng366/Elegemory/releases/download/v0.5.0/Elegemory_0.5.0_x64_en-US.msi) | MSI 安装包 |
-| [SHA256SUMS.txt](https://github.com/chovypeng366/Elegemory/releases/download/v0.5.0/SHA256SUMS.txt) | 文件校验值 |
+| [elegemory.exe](https://github.com/chovypeng366/Elegemory/releases/download/v0.6.0/elegemory.exe) | 便携版，下载后直接运行，无需安装 |
+| [Elegemory_0.6.0_x64-setup.exe](https://github.com/chovypeng366/Elegemory/releases/download/v0.6.0/Elegemory_0.6.0_x64-setup.exe) | NSIS 安装包 |
+| [Elegemory_0.6.0_x64_en-US.msi](https://github.com/chovypeng366/Elegemory/releases/download/v0.6.0/Elegemory_0.6.0_x64_en-US.msi) | MSI 安装包 |
+| [SHA256SUMS.txt](https://github.com/chovypeng366/Elegemory/releases/download/v0.6.0/SHA256SUMS.txt) | 文件校验值 |
 
 也可以访问 [Releases](https://github.com/chovypeng366/Elegemory/releases/latest) 查看全部版本与更新说明。
 
@@ -54,6 +54,29 @@ Elegemory 是一款以剪贴板为入口、以时间轴为组织方式的 Window
 
 - 每次新增笔记或待办后，白板底部会出现一句简短的情绪文案，停留几秒后淡出，不堆叠、不弹窗。
 - 文案内容、出现时机和一些小惊喜，留给使用过程中慢慢发现。
+
+### Memory Echo
+
+- 打开白板时，偶尔会在底部出现一张过去的记忆卡片，例如「21 天前，你留下过这个想法」。
+- 点击卡片直接回到原记录，右上角可以收起；不使用弹窗，不打断当前工作。
+- 优先选择收藏过、很久没有打开过的旧记录；同一时间只显示一张；按本地时间分为上午、中午、下午、晚上四个时段，每个时段最多出现一次。
+- 只读取本地数据，不会上传或请求网络。
+
+### Memory Threads
+
+- 在笔记详情底部可以看到与这条记录相连的其他记忆，按时间顺序排列，点击即可跳转。
+- 可以手动搜索并关联任意一条仍然存在的记录；关联是双向的，也可以随时解除。
+- 对于最近 7 天内的新记录，会根据本地文字关键词给出至多两条轻柔的关联建议；确认后才建立连接。
+- 配置 DeepSeek 后，可以主动点击「AI 建议」，让 AI 判断哪些候选记录在主题或项目上更相关；只有这次点击会发送当前记录与候选摘录。
+- 球状 Link Graph 只投影当前记录所在的连通关联子图，不会混入互不相连的其他记忆；节点标题始终显示，点击节点打开记录，详情页提供「返回图谱」。
+- 关联数据保存在 SQLite；本地建议完全离线。
+
+### Day Canvas
+
+- 每个日期分组右上角都有「生成拼贴」按钮。
+- 把当天所有未删除的文字、截图和待办组合成一张纸张海报，并显示日期与片段数量。
+- 海报跟随当前纸张主题、磁扣和字体风格，可以导出为 PNG。
+- 图片会先读取为本地数据，再参与海报渲染与导出，不会上传。
 
 ### AI 整理（可选）
 
@@ -162,9 +185,9 @@ Elegemory/
 ├─ src/
 │  ├─ components/               # Logo、图标按钮、磁扣、Toast、确认框
 │  ├─ features/
-│  │  ├─ board/                 # 白板窗口、侧栏、顶部搜索、时间轴
+│  │  ├─ board/                 # 白板窗口、侧栏、时间轴、Memory Echo、Day Canvas
 │  │  ├─ capture/               # 速记窗口
-│  │  ├─ notes/                 # 笔记卡片与详情面板
+│  │  ├─ notes/                 # 笔记卡片、详情面板、Memory Threads、Link Graph
 │  │  └─ settings/              # 设置弹窗与 Memory Whisper 设置
 │  ├─ lib/                      # 日期工具、词库、低语引擎、资源 URL
 │  ├─ services/                 # Tauri 命令、剪贴板、系统事件、开发预览数据
@@ -176,7 +199,8 @@ Elegemory/
 │  ├─ capabilities/default.json
 │  ├─ migrations/
 │  │  ├─ 001_init.sql
-│  │  └─ 002_whisper.sql
+│  │  ├─ 002_whisper.sql
+│  │  └─ 003_memory.sql
 │  ├─ src/
 │  │  ├─ db.rs                  # 连接、迁移、查询组装
 │  │  ├─ models.rs              # Serde 模型
@@ -187,6 +211,8 @@ Elegemory/
 │  │  │  ├─ settings.rs         # 设置与快捷键
 │  │  │  ├─ whisper.rs          # 低语统计、历史与设置
 │  │  │  ├─ ai.rs               # DeepSeek 请求、密钥与 AI 结果解析
+│  │  │  ├─ memory.rs           # Memory Echo、Memory Threads、AI 建议与图谱数据
+│  │  │  ├─ canvas.rs           # Day Canvas 图片读取与 PNG 保存
 │  │  │  └─ system.rs           # 窗口与退出
 │  │  └─ lib.rs                 # 插件、迁移、快捷键、窗口生命周期
 │  └─ tauri.conf.json
@@ -203,10 +229,11 @@ Elegemory/
 
 ### 数据表
 
-- `notes`：`id / type / title / created_at / updated_at / is_pinned / is_favorite / is_archived`
+- `notes`：`id / type / title / created_at / updated_at / is_pinned / is_favorite / is_archived / last_opened_at`
 - `note_blocks`：`id / note_id / block_type / content / asset_id / sort_order / is_completed`
 - `assets`：`id / relative_path / mime_type / width / height / size_bytes / created_at`
-- `settings`：键值配置（快捷键、外观、Memory Whisper 偏好等）
+- `note_links`：`id / note_a_id / note_b_id / created_at / created_by`
+- `settings`：键值配置（快捷键、外观、Memory Whisper、AI 与 Memory Echo 状态等）
 - `daily_feedback_stats`：`workday_key / note_created_count / todo_created_count / daily_mood / updated_at`
 - `whisper_history`：`id / phrase_id / category / note_type / shown_at / workday_key`
 
@@ -270,6 +297,7 @@ npm run tauri build -- --no-bundle
 - 标签、每日回顾与更完整的导出能力。
 - 明暗主题与更细腻的纸张材质。
 - 图片资源回收站与孤儿资源清理。
+- Memory Threads：可选的 AI 语义关联建议，目前使用本地关键词相似度。
 - 可选的 AI 能力：标签推荐、批量整理与流式输出，默认关闭，由用户主动触发。
 
 ## 反馈

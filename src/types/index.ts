@@ -63,6 +63,44 @@ export interface CreateNoteResult {
   whisper: WhisperFeedback | null;
 }
 
+export interface MemoryEcho {
+  note: Note;
+  daysAgo: number;
+}
+
+export interface NoteLinkEntry {
+  note: Note;
+  linkedAt: number;
+}
+
+export interface LinkSuggestion {
+  note: Note;
+  daysAgo: number;
+  reason?: string | null;
+  source: "local" | "ai";
+}
+
+export interface GraphNode {
+  id: string;
+  title: string;
+  type: NoteType;
+  createdAt: number;
+  isFavorite: boolean;
+  degree: number;
+}
+
+export interface GraphEdge {
+  source: string;
+  target: string;
+  createdAt: number;
+  createdBy: "manual" | "suggested";
+}
+
+export interface LinkGraph {
+  nodes: GraphNode[];
+  edges: GraphEdge[];
+}
+
 export interface AppInfo {
   version: string;
   dataDir: string;

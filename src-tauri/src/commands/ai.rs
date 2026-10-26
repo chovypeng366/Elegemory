@@ -71,7 +71,7 @@ fn read_stored_key() -> Result<Option<String>, String> {
     }
 }
 
-fn effective_key() -> Result<String, String> {
+pub(crate) fn effective_key() -> Result<String, String> {
     if let Some(key) = read_stored_key()? {
         return Ok(key);
     }
@@ -102,7 +102,7 @@ fn has_configured_key() -> Result<bool, String> {
     Ok(false)
 }
 
-fn selected_model(state: &Db) -> String {
+pub(crate) fn selected_model(state: &Db) -> String {
     match state.get_setting(AI_MODEL_KEY).ok().flatten().as_deref() {
         Some(MODEL_REASONER) => MODEL_REASONER.to_string(),
         _ => MODEL_CHAT.to_string(),
@@ -129,7 +129,7 @@ fn normalize_input(text: &str) -> Result<String, String> {
     Ok(trimmed.chars().take(MAX_INPUT_CHARS).collect())
 }
 
-async fn chat(
+pub(crate) async fn chat(
     key: &str,
     model: &str,
     system: &str,

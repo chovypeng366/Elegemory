@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { Pin, Search, Sparkles } from "lucide-react";
+import { LayoutGrid, Pin, Search, Sparkles } from "lucide-react";
 import { groupByDate, orderNotes, formatDateKeyLabel } from "../../lib/utils";
 import { showCapture } from "../../services/system";
 import { useUiStore } from "../../stores/uiStore";
@@ -92,6 +92,8 @@ function TimelineGroup({
 }) {
   const gridRef = useRef<HTMLDivElement>(null);
   const draggedId = useRef<string | null>(null);
+  const openDayCanvas = useUiStore((state) => state.openDayCanvas);
+  const dateKey = groupKey.startsWith("day:") ? groupKey.slice(4) : null;
 
   const findCard = (event: React.DragEvent) =>
     (event.target as HTMLElement).closest("[data-note-id]") as HTMLElement | null;
@@ -185,6 +187,17 @@ function TimelineGroup({
         <span className="text-[10px] tabular-nums text-muted/55">
           · {notes.length}条
         </span>
+        {dateKey && (
+          <button
+            type="button"
+            onClick={() => openDayCanvas(dateKey)}
+            title="生成当天的 Day Canvas"
+            className="ml-auto flex h-6 items-center gap-1 rounded-md px-2 text-[9.5px] text-muted/45 transition-colors hover:bg-accent/10 hover:text-accent-deep focus-ring"
+          >
+            <LayoutGrid size={10} />
+            生成拼贴
+          </button>
+        )}
       </header>
       <div
         ref={gridRef}
