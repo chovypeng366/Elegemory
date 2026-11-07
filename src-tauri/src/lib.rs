@@ -10,6 +10,7 @@ use tauri_plugin_global_shortcut::ShortcutState;
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .manage(commands::pin::PinnedNote::default())
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
             commands::system::show_board_impl(app);
         }))
@@ -54,6 +55,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             commands::notes::list_notes,
+            commands::notes::get_note,
             commands::notes::create_note,
             commands::notes::set_note_title,
             commands::notes::set_note_favorite,
@@ -89,6 +91,9 @@ pub fn run() {
             commands::memory::get_link_graph,
             commands::canvas::get_asset_data_url,
             commands::canvas::save_png_data,
+            commands::pin::pin_note_to_top,
+            commands::pin::get_pinned_note_id,
+            commands::pin::unpin_note,
             commands::system::show_capture,
             commands::system::hide_capture,
             commands::system::toggle_capture,

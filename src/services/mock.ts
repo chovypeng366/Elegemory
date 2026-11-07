@@ -300,6 +300,15 @@ export const mockBackend = {
     return clone(load());
   },
 
+  async getNote(id: string): Promise<Note> {
+    return clone(findNote(load(), id));
+  },
+
+  async getPinnedNoteId(): Promise<string | null> {
+    const note = load().find((item) => !item.isArchived);
+    return note?.id ?? null;
+  },
+
   async getMemoryEcho(): Promise<MemoryEcho | null> {
     const notes = load()
       .filter(

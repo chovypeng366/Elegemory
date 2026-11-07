@@ -10,6 +10,7 @@ import {
   ImageDown,
   ListTodo,
   Loader2,
+  PanelTop,
   Pin,
   Plus,
   RotateCcw,
@@ -38,6 +39,55 @@ import { useUiStore } from "../../stores/uiStore";
 import type { NoteBlock } from "../../types";
 import { NoteThreads } from "./NoteThreads";
 
+const DRAWER_SIZE_KEY = "elegemory.note-drawer-size.v1";
+const DRAWER_MIN_WIDTH = 380;
+const DRAWER_MAX_WIDTH = 760;
+const DRAWER_MIN_HEIGHT = 420;
+const DRAWER_MAX_HEIGHT = 760;
+
+function clampSize(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function viewportDrawerLimits() {
+  if (typeof window === "undefined") {
+    return { maxWidth: DRAWER_MAX_WIDTH, maxHeight: DRAWER_MAX_HEIGHT };
+  }
+  return {
+    maxWidth: Math.max(
+      DRAWER_MIN_WIDTH,
+      Math.min(DRAWER_MAX_WIDTH, window.innerWidth - 48),
+    ),
+    maxHeight: Math.max(
+      DRAWER_MIN_HEIGHT,
+      Math.min(DRAWER_MAX_HEIGHT, window.innerHeight - 88),
+    ),
+  };
+}
+
+function initialDrawerSize() {
+  const limits = viewportDrawerLimits();
+  const fallback = {
+    width: 468,
+    height: limits.maxHeight,
+  };
+  try {
+    const raw = localStorage.getItem(DRAWER_SIZE_KEY);
+    if (!raw) return fallback;
+    const parsed = JSON.parse(raw) as { width?: number; height?: number };
+    return {
+      width: clampSize(Number(parsed.width) || 468, DRAWER_MIN_WIDTH, limits.maxWidth),
+      height: clampSize(
+        Number(parsed.height) || limits.maxHeight,
+        DRAWER_MIN_HEIGHT,
+        limits.maxHeight,
+      ),
+    };
+  } catch {
+    return fallback;
+  }
+}
+
 export function NoteDetailDrawer() {
   const selectedId = useUiStore((state) => state.selectedNoteId);
   const closeNote = useUiStore((state) => state.closeNote);
@@ -63,8 +113,10 @@ export function NoteDetailDrawer() {
   const toggleTodo = useNotesStore((state) => state.toggleTodo);
 
   const [title, setTitle] = useState("");
+  const [drawerSize, setDrawerSize] = useState(initialDrawerSize);
   const syncedNoteId = useRef<string | null>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
+  const asideRef = useRef<HTMLElement>(null);
   const dragControls = useDragControls();
   const aiStatus = useAiStore((state) => state.status);
   const refreshAi = useAiStore((state) => state.refresh);
@@ -83,6 +135,79 @@ export function NoteDetailDrawer() {
     setAiSummary("");
     setAiBusy(null);
   }, [note?.id]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      try {
+        localStorage.setItem(DRAWER_SIZE_KEY, JSON.stringify(drawerSize));
+      } catch {
+        // Size preference is best-effort.
+      }
+    }, 250);
+    return () => window.clearTimeout(timer);
+  }, [drawerSize]);
+
+  useEffect(() => {
+    const onWindowResize = () => {
+      const limits = viewportDrawerLimits();
+      setDrawerSize((current) => ({
+        width: clampSize(current.width, DRAWER_MIN_WIDTH, limits.maxWidth),
+        height: clampSize(current.height, DRAWER_MIN_HEIGHT, limits.maxHeight),
+      }));
+    };
+    window.addEventListener("resize", onWindowResize);
+    return () => window.removeEventListener("resize", onWindowResize);
+  }, []);
+
+  const startResize = (
+    event: React.PointerEvent<HTMLDivElement>,
+    axis: "x" | "y" | "xy",
+  ) => {
+    if (event.button !== 0) return;
+    event.preventDefault();
+    event.stopPropagation();
+
+    const element = event.currentTarget;
+    const startX = event.clientX;
+    const startY = event.clientY;
+    const origin = drawerSize;
+    element.setPointerCapture(event.pointerId);
+
+    const handleMove = (moveEvent: PointerEvent) => {
+      const limits = viewportDrawerLimits();
+      setDrawerSize({
+        width:
+          axis === "y"
+            ? origin.width
+            : clampSize(
+                origin.width + moveEvent.clientX - startX,
+                DRAWER_MIN_WIDTH,
+                limits.maxWidth,
+              ),
+        height:
+          axis === "x"
+            ? origin.height
+            : clampSize(
+                origin.height + moveEvent.clientY - startY,
+                DRAWER_MIN_HEIGHT,
+                limits.maxHeight,
+              ),
+      });
+    };
+
+    const handleUp = (upEvent: PointerEvent) => {
+      element.removeEventListener("pointermove", handleMove);
+      element.removeEventListener("pointerup", handleUp);
+      element.removeEventListener("pointercancel", handleUp);
+      if (element.hasPointerCapture(upEvent.pointerId)) {
+        element.releasePointerCapture(upEvent.pointerId);
+      }
+    };
+
+    element.addEventListener("pointermove", handleMove);
+    element.addEventListener("pointerup", handleUp);
+    element.addEventListener("pointercancel", handleUp);
+  };
 
   useEffect(() => {
     if (note && syncedNoteId.current !== note.id) {
@@ -166,6 +291,16 @@ export function NoteDetailDrawer() {
     }
   };
 
+  const pinToDesktop = async () => {
+    if (!note) return;
+    try {
+      await api.pinNoteToTop(note.id);
+      closeNote();
+    } catch (error) {
+      pushToast(errorMessage(error), "error");
+    }
+  };
+
   const handleCopyImage = async () => {
     if (!image) return;
     try {
@@ -218,6 +353,7 @@ export function NoteDetailDrawer() {
             className="absolute inset-0 bg-ink/10 backdrop-blur-[1.5px]"
           />
           <motion.aside
+            ref={asideRef}
             role="dialog"
             aria-modal="true"
             aria-label="记录详情"
@@ -227,12 +363,22 @@ export function NoteDetailDrawer() {
             dragConstraints={overlayRef}
             dragMomentum={false}
             dragElastic={0.04}
+            onDragEnd={(_event, info) => {
+              if (!note) return;
+              const top =
+                asideRef.current?.getBoundingClientRect().top ??
+                Number.POSITIVE_INFINITY;
+              if (top <= 34 && info.offset.y < -18) {
+                void pinToDesktop();
+              }
+            }}
             initial={{ scale: 0.97, y: 8, opacity: 0.5 }}
             animate={{ scale: 1, y: 0, opacity: 1 }}
             exit={{ scale: 0.98, y: 6, opacity: 0 }}
             transition={{ type: "spring", stiffness: 330, damping: 32 }}
             onClick={(event) => event.stopPropagation()}
-            className="drawer-surface relative flex h-[calc(100vh-88px)] max-h-[760px] w-[468px] max-w-[94vw] flex-col overflow-hidden rounded-2xl border border-line shadow-[0_30px_80px_-30px_rgba(64,56,47,0.45)]"
+            style={{ width: drawerSize.width, height: drawerSize.height }}
+            className="drawer-surface relative flex max-w-[94vw] flex-col overflow-hidden rounded-2xl border border-line shadow-[0_30px_80px_-30px_rgba(64,56,47,0.45)]"
           >
             <header
               onPointerDown={(event) => {
@@ -299,6 +445,12 @@ export function NoteDetailDrawer() {
                       onClick={() => void togglePinned(note)}
                     >
                       <Pin size={14} className={cn(note.isPinned && "text-pin")} />
+                    </IconButton>
+                    <IconButton
+                      label="挂到桌面顶部"
+                      onClick={() => void pinToDesktop()}
+                    >
+                      <PanelTop size={14} />
                     </IconButton>
                     <IconButton
                       label="移入回收站"
@@ -485,6 +637,28 @@ export function NoteDetailDrawer() {
                 </div>
               )}
             </footer>
+
+            <div
+              aria-hidden="true"
+              onPointerDown={(event) => startResize(event, "x")}
+              className="group/resize-x absolute bottom-3 right-0 top-12 z-20 w-1.5 cursor-ew-resize touch-none"
+            >
+              <span className="absolute left-1/2 top-1/2 h-10 w-px -translate-x-1/2 -translate-y-1/2 rounded-full bg-ink/10 transition-colors group-hover/resize-x:bg-accent/45" />
+            </div>
+            <div
+              aria-hidden="true"
+              onPointerDown={(event) => startResize(event, "y")}
+              className="group/resize-y absolute inset-x-3 bottom-0 z-20 h-1.5 cursor-ns-resize touch-none"
+            >
+              <span className="absolute left-1/2 top-1/2 h-px w-10 -translate-x-1/2 -translate-y-1/2 rounded-full bg-ink/10 transition-colors group-hover/resize-y:bg-accent/45" />
+            </div>
+            <div
+              aria-hidden="true"
+              onPointerDown={(event) => startResize(event, "xy")}
+              className="group/resize-xy absolute bottom-0 right-0 z-30 size-4 cursor-nwse-resize touch-none"
+            >
+              <span className="absolute bottom-1 right-1 size-2 rounded-br-[2px] border-b border-r border-ink/15 transition-colors group-hover/resize-xy:border-accent/50" />
+            </div>
           </motion.aside>
         </motion.div>
       )}

@@ -3,15 +3,16 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { Toasts } from "./components/Toasts";
 import { BoardWindow } from "./features/board/BoardWindow";
 import { CaptureWindow } from "./features/capture/CaptureWindow";
+import { PinnedNoteWindow } from "./features/pin/PinnedNoteWindow";
 import { applyAppearance } from "./lib/appearance";
 import { isTauri } from "./services/env";
 import { useSettingsStore } from "./stores/settingsStore";
 
 function resolveWindowLabel(): string {
   if (isTauri()) return getCurrentWindow().label;
-  return new URLSearchParams(window.location.search).get("window") === "capture"
-    ? "capture"
-    : "main";
+  const requested = new URLSearchParams(window.location.search).get("window");
+  if (requested === "capture" || requested === "pin") return requested;
+  return "main";
 }
 
 export default function App() {
@@ -34,8 +35,14 @@ export default function App() {
 
   return (
     <div className="h-full">
-      {label === "capture" ? <CaptureWindow /> : <BoardWindow />}
-      <Toasts />
+      {label === "capture" ? (
+        <CaptureWindow />
+      ) : label === "pin" ? (
+        <PinnedNoteWindow />
+      ) : (
+        <BoardWindow />
+      )}
+      {label !== "pin" && <Toasts />}
     </div>
   );
 }

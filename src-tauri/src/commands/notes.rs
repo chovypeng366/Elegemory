@@ -388,6 +388,12 @@ pub fn delete_block(state: State<'_, Db>, block_id: String) -> Result<Note, Stri
 }
 
 #[tauri::command]
+pub fn get_note(state: State<'_, Db>, id: String) -> Result<Note, String> {
+    let conn = state.conn();
+    db::load_note(&conn, &state.data_dir, &id)
+}
+
+#[tauri::command]
 pub fn toggle_block_completed(
     state: State<'_, Db>,
     block_id: String,

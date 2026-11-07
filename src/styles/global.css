@@ -753,3 +753,35 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
     transform: none;
   }
 }
+
+html[data-window="pin"],
+html[data-window="pin"] body,
+html[data-window="pin"] #root {
+  background: transparent !important;
+  overflow: hidden;
+}
+
+.pin-card {
+  background:
+    radial-gradient(300px 180px at 100% 0%, rgba(184, 137, 90, 0.12), transparent 70%),
+    var(--color-surface);
+  box-shadow:
+    0 22px 50px -24px rgba(64, 56, 47, 0.55),
+    0 2px 5px rgba(64, 56, 47, 0.08);
+  transform-origin: 50% 0%;
+}
+
+.pin-clip {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  z-index: 10;
+  width: 76px;
+  height: 20px;
+  transform: translateX(-50%);
+  border-radius: 0 0 12px 12px;
+  background: linear-gradient(180deg, #d9e3df 0%, #9db6b0 52%, #748f89 100%);
+  box-shadow:
+    0 4px 9px rgba(64, 56, 47, 0.28),
+    inset 0 1px 1px rgba(255, 255, 255, 0.65);
+}

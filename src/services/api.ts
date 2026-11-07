@@ -22,6 +22,26 @@ export const api = {
     return isTauri() ? invoke<Note[]>("list_notes") : mockBackend.listNotes();
   },
 
+  getNote(id: string): Promise<Note> {
+    return isTauri() ? invoke<Note>("get_note", { id }) : mockBackend.getNote(id);
+  },
+
+  pinNoteToTop(noteId: string): Promise<void> {
+    return isTauri()
+      ? invoke<void>("pin_note_to_top", { noteId })
+      : Promise.resolve();
+  },
+
+  getPinnedNoteId(): Promise<string | null> {
+    return isTauri()
+      ? invoke<string | null>("get_pinned_note_id")
+      : mockBackend.getPinnedNoteId();
+  },
+
+  unpinNote(): Promise<void> {
+    return isTauri() ? invoke<void>("unpin_note") : Promise.resolve();
+  },
+
   createNote(input: CreateNoteInput): Promise<CreateNoteResult> {
     return isTauri()
       ? invoke<CreateNoteResult>("create_note", { input })

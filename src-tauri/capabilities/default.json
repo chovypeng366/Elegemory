@@ -2,7 +2,11 @@
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
   "description": "Elegemory 主窗口与速记窗口的权限",
-  "windows": ["main", "capture"],
+  "windows": [
+    "main",
+    "capture",
+    "pin"
+  ],
   "permissions": [
     "core:default",
     "core:window:allow-hide",
@@ -18,6 +22,7 @@
     "clipboard-manager:allow-read-text",
     "clipboard-manager:allow-write-text",
     "clipboard-manager:allow-read-image",
-    "clipboard-manager:allow-write-image"
+    "clipboard-manager:allow-write-image",
+    "core:event:default"
   ]
 }
