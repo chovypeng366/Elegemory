@@ -8,14 +8,14 @@ Elegemory 是一款以剪贴板为入口、以时间轴为组织方式的 Window
 
 ## 下载
 
-最新版本：**v0.6.2** · Windows 10 / 11 x64
+最新版本：**v0.6.3** · Windows 10 / 11 x64
 
 | 文件 | 说明 |
 | --- | --- |
-| [elegemory.exe](https://github.com/chovypeng366/Elegemory/releases/download/v0.6.2/elegemory.exe) | 便携版，下载后直接运行，无需安装 |
-| [Elegemory_0.6.2_x64-setup.exe](https://github.com/chovypeng366/Elegemory/releases/download/v0.6.2/Elegemory_0.6.2_x64-setup.exe) | NSIS 安装包 |
-| [Elegemory_0.6.2_x64_en-US.msi](https://github.com/chovypeng366/Elegemory/releases/download/v0.6.2/Elegemory_0.6.2_x64_en-US.msi) | MSI 安装包 |
-| [SHA256SUMS.txt](https://github.com/chovypeng366/Elegemory/releases/download/v0.6.2/SHA256SUMS.txt) | 文件校验值 |
+| [elegemory.exe](https://github.com/chovypeng366/Elegemory/releases/download/v0.6.3/elegemory.exe) | 便携版，下载后直接运行，无需安装 |
+| [Elegemory_0.6.3_x64-setup.exe](https://github.com/chovypeng366/Elegemory/releases/download/v0.6.3/Elegemory_0.6.3_x64-setup.exe) | NSIS 安装包 |
+| [Elegemory_0.6.3_x64_en-US.msi](https://github.com/chovypeng366/Elegemory/releases/download/v0.6.3/Elegemory_0.6.3_x64_en-US.msi) | MSI 安装包 |
+| [SHA256SUMS.txt](https://github.com/chovypeng366/Elegemory/releases/download/v0.6.3/SHA256SUMS.txt) | 文件校验值 |
 
 也可以访问 [Releases](https://github.com/chovypeng366/Elegemory/releases/latest) 查看全部版本与更新说明。
 
@@ -83,6 +83,7 @@ Elegemory 是一款以剪贴板为入口、以时间轴为组织方式的 Window
 - 在详情面板快速向上拖到顶部，或点击顶部的挂起按钮，笔记会变成独立的置顶小窗，挂在当前屏幕顶部。
 - 进入动画只保留弹性回拉和轻微钟摆，不绘制任何蛛丝或连线。
 - 悬挂窗口默认较小，可拖动右边缘、下边缘或右下角调整宽高，并记住上次尺寸。
+- 挂在屏幕顶部时，按住顶部信息区可以左右拖动窗口，垂直位置保持在顶部。
 - 主窗口收起到托盘后，悬挂的笔记仍然保留。
 - 点击悬挂窗口里的「取下」，会回到主窗口并重新打开这条记录。
 

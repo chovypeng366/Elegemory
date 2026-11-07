@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { motion } from "motion/react";
-import { LogicalSize } from "@tauri-apps/api/dpi";
-import { getCurrentWindow } from "@tauri-apps/api/window";
+import { LogicalSize, PhysicalPosition } from "@tauri-apps/api/dpi";
+import { currentMonitor, getCurrentWindow } from "@tauri-apps/api/window";
 import { Image as ImageIcon, PinOff } from "lucide-react";
 import { assetSrc } from "../../lib/assets";
 import { errorMessage, formatFullDate, typeLabel } from "../../lib/utils";
@@ -14,7 +14,7 @@ const PIN_MIN_WIDTH = 300;
 const PIN_MAX_WIDTH = 560;
 const PIN_MIN_HEIGHT = 320;
 const PIN_MAX_HEIGHT = 900;
-const PIN_SIZE_KEY = "elegemory.pin-window-size.v2";
+const PIN_SIZE_KEY = "elegemory.pin-window-size.v3";
 
 export function PinnedNoteWindow() {
   const [noteId, setNoteId] = useState<string | null>(null);
@@ -102,6 +102,78 @@ export function PinnedNoteWindow() {
         );
       } catch {
         // Size preference is best-effort.
+      }
+    };
+
+    element.addEventListener("pointermove", handleMove);
+    element.addEventListener("pointerup", handleUp);
+    element.addEventListener("pointercancel", handleUp);
+  };
+
+  const startMove = (event: React.PointerEvent<HTMLElement>) => {
+    if (!isTauri() || event.button !== 0) return;
+    if (
+      (event.target as HTMLElement).closest("button, input, textarea, a")
+    ) {
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+
+    const element = event.currentTarget;
+    const startScreenX = event.screenX;
+    element.setPointerCapture(event.pointerId);
+
+    let drag: {
+      x: number;
+      y: number;
+      scale: number;
+      left: number;
+      right: number;
+    } | null = null;
+
+    void (async () => {
+      try {
+        const win = getCurrentWindow();
+        const [position, size, scale, monitor] = await Promise.all([
+          win.outerPosition(),
+          win.outerSize(),
+          win.scaleFactor(),
+          currentMonitor(),
+        ]);
+        const left = monitor?.position.x ?? position.x;
+        const right = Math.max(
+          left,
+          (monitor
+            ? monitor.position.x + monitor.size.width
+            : position.x + size.width) - size.width,
+        );
+        drag = { x: position.x, y: position.y, scale, left, right };
+      } catch {
+        // Moving the window is optional; ignore permission or monitor errors.
+      }
+    })();
+
+    const handleMove = (moveEvent: PointerEvent) => {
+      if (!drag) return;
+      const x = Math.min(
+        drag.right,
+        Math.max(
+          drag.left,
+          drag.x + (moveEvent.screenX - startScreenX) * drag.scale,
+        ),
+      );
+      void getCurrentWindow()
+        .setPosition(new PhysicalPosition(Math.round(x), Math.round(drag.y)))
+        .catch(() => undefined);
+    };
+
+    const handleUp = (upEvent: PointerEvent) => {
+      element.removeEventListener("pointermove", handleMove);
+      element.removeEventListener("pointerup", handleUp);
+      element.removeEventListener("pointercancel", handleUp);
+      if (element.hasPointerCapture(upEvent.pointerId)) {
+        element.releasePointerCapture(upEvent.pointerId);
       }
     };
 
@@ -201,7 +273,10 @@ export function PinnedNoteWindow() {
       >
         <span aria-hidden="true" className="pin-clip" />
 
-        <header className="flex shrink-0 items-start justify-between gap-3 px-5 pb-3 pt-7">
+        <header
+          onPointerDown={startMove}
+          className="flex shrink-0 cursor-grab touch-none select-none items-start justify-between gap-3 px-5 pb-3 pt-7 active:cursor-grabbing"
+        >
           <div className="min-w-0">
             <p className="text-[8.5px] font-medium uppercase tracking-[0.2em] text-accent-deep/70">
               Pinned Memory
