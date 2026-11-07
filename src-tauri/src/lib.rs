@@ -4,7 +4,7 @@ mod models;
 mod tray;
 
 use db::Db;
-use tauri::{Manager, WindowEvent};
+use tauri::{Manager, WebviewUrl, WebviewWindowBuilder, WindowEvent};
 use tauri_plugin_global_shortcut::ShortcutState;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -36,6 +36,31 @@ pub fn run() {
             app.manage(database);
             commands::settings::register_startup_shortcut(&handle, &shortcut);
             tray::create(&handle)?;
+
+            // Create the transparent pin window after the database is managed,
+            // so its webview cannot call commands before the state exists.
+            if handle.get_webview_window("pin").is_none() {
+                if let Err(error) = WebviewWindowBuilder::new(
+                    &handle,
+                    "pin",
+                    WebviewUrl::App("index.html".into()),
+                )
+                .title("Elegemory")
+                .inner_size(360.0, 460.0)
+                .min_inner_size(300.0, 320.0)
+                .max_inner_size(560.0, 900.0)
+                .resizable(true)
+                .decorations(false)
+                .transparent(true)
+                .visible(false)
+                .always_on_top(true)
+                .skip_taskbar(true)
+                .shadow(false)
+                .build()
+                {
+                    eprintln!("无法创建悬挂窗口：{error}");
+                }
+            }
 
             if let Some(capture) = handle.get_webview_window("capture") {
                 let _ = capture.hide();

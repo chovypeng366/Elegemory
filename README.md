@@ -8,14 +8,14 @@ Elegemory 是一款以剪贴板为入口、以时间轴为组织方式的 Window
 
 ## 下载
 
-最新版本：**v0.6.1** · Windows 10 / 11 x64
+最新版本：**v0.6.2** · Windows 10 / 11 x64
 
 | 文件 | 说明 |
 | --- | --- |
-| [elegemory.exe](https://github.com/chovypeng366/Elegemory/releases/download/v0.6.1/elegemory.exe) | 便携版，下载后直接运行，无需安装 |
-| [Elegemory_0.6.1_x64-setup.exe](https://github.com/chovypeng366/Elegemory/releases/download/v0.6.1/Elegemory_0.6.1_x64-setup.exe) | NSIS 安装包 |
-| [Elegemory_0.6.1_x64_en-US.msi](https://github.com/chovypeng366/Elegemory/releases/download/v0.6.1/Elegemory_0.6.1_x64_en-US.msi) | MSI 安装包 |
-| [SHA256SUMS.txt](https://github.com/chovypeng366/Elegemory/releases/download/v0.6.1/SHA256SUMS.txt) | 文件校验值 |
+| [elegemory.exe](https://github.com/chovypeng366/Elegemory/releases/download/v0.6.2/elegemory.exe) | 便携版，下载后直接运行，无需安装 |
+| [Elegemory_0.6.2_x64-setup.exe](https://github.com/chovypeng366/Elegemory/releases/download/v0.6.2/Elegemory_0.6.2_x64-setup.exe) | NSIS 安装包 |
+| [Elegemory_0.6.2_x64_en-US.msi](https://github.com/chovypeng366/Elegemory/releases/download/v0.6.2/Elegemory_0.6.2_x64_en-US.msi) | MSI 安装包 |
+| [SHA256SUMS.txt](https://github.com/chovypeng366/Elegemory/releases/download/v0.6.2/SHA256SUMS.txt) | 文件校验值 |
 
 也可以访问 [Releases](https://github.com/chovypeng366/Elegemory/releases/latest) 查看全部版本与更新说明。
 
