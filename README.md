@@ -8,14 +8,14 @@ Elegemory 是一款以剪贴板为入口、以时间轴为组织方式的 Window
 
 ## 下载
 
-最新版本：**v0.6.3** · Windows 10 / 11 x64
+最新版本：**v0.6.7** · Windows 10 / 11 x64
 
 | 文件 | 说明 |
 | --- | --- |
-| [elegemory.exe](https://github.com/chovypeng366/Elegemory/releases/download/v0.6.3/elegemory.exe) | 便携版，下载后直接运行，无需安装 |
-| [Elegemory_0.6.3_x64-setup.exe](https://github.com/chovypeng366/Elegemory/releases/download/v0.6.3/Elegemory_0.6.3_x64-setup.exe) | NSIS 安装包 |
-| [Elegemory_0.6.3_x64_en-US.msi](https://github.com/chovypeng366/Elegemory/releases/download/v0.6.3/Elegemory_0.6.3_x64_en-US.msi) | MSI 安装包 |
-| [SHA256SUMS.txt](https://github.com/chovypeng366/Elegemory/releases/download/v0.6.3/SHA256SUMS.txt) | 文件校验值 |
+| [elegemory.exe](https://github.com/chovypeng366/Elegemory/releases/download/v0.6.7/elegemory.exe) | 便携版，下载后直接运行，无需安装 |
+| [Elegemory_0.6.7_x64-setup.exe](https://github.com/chovypeng366/Elegemory/releases/download/v0.6.7/Elegemory_0.6.7_x64-setup.exe) | NSIS 安装包 |
+| [Elegemory_0.6.7_x64_en-US.msi](https://github.com/chovypeng366/Elegemory/releases/download/v0.6.7/Elegemory_0.6.7_x64_en-US.msi) | MSI 安装包 |
+| [SHA256SUMS.txt](https://github.com/chovypeng366/Elegemory/releases/download/v0.6.7/SHA256SUMS.txt) | 文件校验值 |
 
 也可以访问 [Releases](https://github.com/chovypeng366/Elegemory/releases/latest) 查看全部版本与更新说明。
 
@@ -80,12 +80,15 @@ Elegemory 是一款以剪贴板为入口、以时间轴为组织方式的 Window
 
 ### 桌面悬挂
 
-- 在详情面板快速向上拖到顶部，或点击顶部的挂起按钮，笔记会变成独立的置顶小窗，挂在当前屏幕顶部。
-- 进入动画只保留弹性回拉和轻微钟摆，不绘制任何蛛丝或连线。
-- 悬挂窗口默认较小，可拖动右边缘、下边缘或右下角调整宽高，并记住上次尺寸。
-- 挂在屏幕顶部时，按住顶部信息区可以左右拖动窗口，垂直位置保持在顶部。
+- 在白板卡片的悬停操作里直接点「挂到桌面顶部」即可挂起，不必先打开详情；详情面板也保留了向上拖或点击挂起按钮的方式。
+- 可以同时挂起最多 6 条文字、图片或待办；每条都是独立的小窗，不会替换已有卡片。
+- 顶部的细线几乎与屏幕等长，保持一个轻盈的固定弧度，卡片由木夹子固定，细线与卡片边框上散落着手绘小花。
+- 悬挂卡片位于桌面层，不会盖住 Elegemory 主窗口或其他正在使用的软件窗口；移开窗口即可在桌面上看到它们。
+- 按住某张卡片的顶部信息区左右拖动，只会移动这一张卡片，其他卡片留在原位。
+- 卡片从上方落下并轻轻摆动，之后偶尔被一阵微风带动；悬停时轻微抬起，阴影和边缘高光随主题变化。
+- 每条卡片默认保持小巧；可以单独拖动右边缘、下边缘或右下角调整这条卡片的大小，图片也会跟着卡片一起放大或缩小，并记住上次尺寸。
 - 主窗口收起到托盘后，悬挂的笔记仍然保留。
-- 点击悬挂窗口里的「取下」，会回到主窗口并重新打开这条记录。
+- 点击某张卡片的「取下」，会回到主窗口并重新打开这条记录，其余卡片继续挂在原位。
 
 ### AI 整理（可选）
 

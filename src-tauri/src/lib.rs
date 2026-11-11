@@ -37,28 +37,28 @@ pub fn run() {
             commands::settings::register_startup_shortcut(&handle, &shortcut);
             tray::create(&handle)?;
 
-            // Create the transparent pin window after the database is managed,
-            // so its webview cannot call commands before the state exists.
-            if handle.get_webview_window("pin").is_none() {
+            // Create the click-through clothesline window after the database is
+            // managed, so its webview cannot call commands before the state exists.
+            if handle.get_webview_window("pin-line").is_none() {
                 if let Err(error) = WebviewWindowBuilder::new(
                     &handle,
-                    "pin",
+                    "pin-line",
                     WebviewUrl::App("index.html".into()),
                 )
                 .title("Elegemory")
-                .inner_size(360.0, 460.0)
-                .min_inner_size(300.0, 320.0)
-                .max_inner_size(560.0, 900.0)
-                .resizable(true)
+                .inner_size(800.0, 48.0)
+                .resizable(false)
                 .decorations(false)
                 .transparent(true)
                 .visible(false)
-                .always_on_top(true)
                 .skip_taskbar(true)
                 .shadow(false)
                 .build()
                 {
-                    eprintln!("无法创建悬挂窗口：{error}");
+                    eprintln!("无法创建悬挂细线窗口：{error}");
+                }
+                if let Some(line) = handle.get_webview_window("pin-line") {
+                    let _ = line.set_ignore_cursor_events(true);
                 }
             }
 
@@ -117,7 +117,7 @@ pub fn run() {
             commands::canvas::get_asset_data_url,
             commands::canvas::save_png_data,
             commands::pin::pin_note_to_top,
-            commands::pin::get_pinned_note_id,
+            commands::pin::get_pinned_note_ids,
             commands::pin::unpin_note,
             commands::system::show_capture,
             commands::system::hide_capture,

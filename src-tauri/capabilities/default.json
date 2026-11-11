@@ -5,7 +5,8 @@
   "windows": [
     "main",
     "capture",
-    "pin"
+    "pin",
+    "pin-*"
   ],
   "permissions": [
     "core:default",

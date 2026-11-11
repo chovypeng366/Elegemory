@@ -49,14 +49,16 @@ export const api = {
       : Promise.resolve();
   },
 
-  getPinnedNoteId(): Promise<string | null> {
+  getPinnedNoteIds(): Promise<string[]> {
     return isTauri()
-      ? invokeReady<string | null>("get_pinned_note_id")
-      : mockBackend.getPinnedNoteId();
+      ? invokeReady<string[]>("get_pinned_note_ids")
+      : mockBackend.getPinnedNoteIds();
   },
 
-  unpinNote(): Promise<void> {
-    return isTauri() ? invokeReady<void>("unpin_note") : Promise.resolve();
+  unpinNote(noteId: string): Promise<string[]> {
+    return isTauri()
+      ? invokeReady<string[]>("unpin_note", { noteId })
+      : mockBackend.unpinNote(noteId);
   },
 
   createNote(input: CreateNoteInput): Promise<CreateNoteResult> {

@@ -304,9 +304,13 @@ export const mockBackend = {
     return clone(findNote(load(), id));
   },
 
-  async getPinnedNoteId(): Promise<string | null> {
-    const note = load().find((item) => !item.isArchived);
-    return note?.id ?? null;
+  async getPinnedNoteIds(): Promise<string[]> {
+    const notes = load().filter((item) => !item.isArchived).slice(0, 3);
+    return notes.map((note) => note.id);
+  },
+
+  async unpinNote(_noteId: string): Promise<string[]> {
+    return [];
   },
 
   async getMemoryEcho(): Promise<MemoryEcho | null> {

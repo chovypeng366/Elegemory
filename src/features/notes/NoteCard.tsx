@@ -3,6 +3,7 @@ import {
   Check,
   Copy,
   GripVertical,
+  PanelTop,
   Pencil,
   Pin,
   RotateCcw,
@@ -22,6 +23,7 @@ import {
   typeLabel,
 } from "../../lib/utils";
 import { copyImageToClipboard, copyTextToClipboard } from "../../services/clipboard";
+import { api } from "../../services/api";
 import { useNotesStore } from "../../stores/notesStore";
 import { useUiStore } from "../../stores/uiStore";
 import type { Note, NoteBlock } from "../../types";
@@ -78,6 +80,15 @@ export function NoteCard({ note, index, canReorder = false }: NoteCardProps) {
     });
     if (confirmed) {
       await deleteNotePermanently(note);
+    }
+  };
+
+  const pinToDesktop = async () => {
+    try {
+      await api.pinNoteToTop(note.id);
+      pushToast("已挂到桌面", "success");
+    } catch (error) {
+      pushToast(errorMessage(error), "error");
     }
   };
 
@@ -248,6 +259,13 @@ export function NoteCard({ note, index, canReorder = false }: NoteCardProps) {
               onClick={() => void togglePinned(note)}
             >
               <Pin size={13} className={cn(note.isPinned && "text-pin")} />
+            </IconButton>
+            <IconButton
+              size="sm"
+              label="挂到桌面顶部"
+              onClick={() => void pinToDesktop()}
+            >
+              <PanelTop size={13} />
             </IconButton>
             <IconButton
               size="sm"

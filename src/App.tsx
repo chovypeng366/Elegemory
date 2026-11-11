@@ -3,15 +3,30 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { Toasts } from "./components/Toasts";
 import { BoardWindow } from "./features/board/BoardWindow";
 import { CaptureWindow } from "./features/capture/CaptureWindow";
-import { PinnedNoteWindow } from "./features/pin/PinnedNoteWindow";
+import {
+  PinnedCardWindow,
+  PinnedLineWindow,
+} from "./features/pin/PinnedNoteWindow";
 import { applyAppearance } from "./lib/appearance";
 import { isTauri } from "./services/env";
 import { useSettingsStore } from "./stores/settingsStore";
 
 function resolveWindowLabel(): string {
-  if (isTauri()) return getCurrentWindow().label;
+  if (isTauri()) {
+    const label = getCurrentWindow().label;
+    if (label === "pin-line") return "pin-line";
+    if (label.startsWith("pin-")) return "pin-card";
+    return label;
+  }
   const requested = new URLSearchParams(window.location.search).get("window");
-  if (requested === "capture" || requested === "pin") return requested;
+  if (
+    requested === "capture" ||
+    requested === "pin" ||
+    requested === "pin-card" ||
+    requested === "pin-line"
+  ) {
+    return requested === "pin" ? "pin-card" : requested;
+  }
   return "main";
 }
 
@@ -37,12 +52,14 @@ export default function App() {
     <div className="h-full">
       {label === "capture" ? (
         <CaptureWindow />
-      ) : label === "pin" ? (
-        <PinnedNoteWindow />
+      ) : label === "pin-line" ? (
+        <PinnedLineWindow />
+      ) : label === "pin-card" ? (
+        <PinnedCardWindow />
       ) : (
         <BoardWindow />
       )}
-      {label !== "pin" && <Toasts />}
+      {label !== "capture" && !label.startsWith("pin") && <Toasts />}
     </div>
   );
 }
