@@ -61,6 +61,12 @@ export const api = {
       : mockBackend.unpinNote(noteId);
   },
 
+  unpinAll(): Promise<void> {
+    return isTauri()
+      ? invokeReady<void>("unpin_all")
+      : Promise.resolve();
+  },
+
   createNote(input: CreateNoteInput): Promise<CreateNoteResult> {
     return isTauri()
       ? invokeReady<CreateNoteResult>("create_note", { input })

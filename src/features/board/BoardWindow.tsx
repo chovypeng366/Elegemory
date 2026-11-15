@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef } from "react";
 import {
   onNotesChanged,
-  onUnpinNote,
   onWhisper,
   onWindowFocus,
   showCapture,
@@ -104,21 +103,6 @@ export function BoardWindow() {
       unlisten?.();
     };
   }, [showWhisper]);
-
-  useEffect(() => {
-    let disposed = false;
-    let unlisten: (() => void) | undefined;
-    void onUnpinNote((noteId) => {
-      useUiStore.getState().openNote(noteId);
-    }).then((fn) => {
-      if (disposed) fn();
-      else unlisten = fn;
-    });
-    return () => {
-      disposed = true;
-      unlisten?.();
-    };
-  }, []);
 
   const handleReorder = (groupKey: string, visibleIds: string[]) => {
     const pool = notes.filter(

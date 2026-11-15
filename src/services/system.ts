@@ -120,13 +120,6 @@ export async function onPinNote(
   return listen<string>("pin-note", (event) => handler(event.payload));
 }
 
-export async function onUnpinNote(
-  handler: (noteId: string) => void,
-): Promise<Unlisten> {
-  if (!isTauri()) return () => undefined;
-  return listen<string>("unpin-note", (event) => handler(event.payload));
-}
-
 export async function onImageDrop(
   handler: (paths: string[]) => void,
 ): Promise<Unlisten> {

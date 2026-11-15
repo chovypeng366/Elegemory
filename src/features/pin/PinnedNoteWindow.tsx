@@ -2,11 +2,13 @@ import { useEffect, useRef, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { LogicalSize, PhysicalPosition } from "@tauri-apps/api/dpi";
 import { currentMonitor, getCurrentWindow } from "@tauri-apps/api/window";
-import { Image as ImageIcon, PinOff } from "lucide-react";
+import { Image as ImageIcon, ImagePlus, Minus, PinOff, Plus, RotateCcw, RotateCw } from "lucide-react";
 import { assetSrc } from "../../lib/assets";
 import { errorMessage, formatFullDate, typeLabel } from "../../lib/utils";
 import { api } from "../../services/api";
+import { imageBlobToPng } from "../../services/clipboard";
 import { isTauri } from "../../services/env";
+import { emitNotesChanged } from "../../services/system";
 import type { Note } from "../../types";
 
 const MIN_WIDTH = 232;
@@ -43,6 +45,10 @@ export function PinnedCardWindow() {
   const [sway, setSway] = useState(0);
   const reduced = useReducedMotion();
   const ignoreClickRef = useRef(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [zoom, setZoom] = useState(1);
+  const [rotation, setRotation] = useState(0);
+  const [adding, setAdding] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -250,6 +256,42 @@ export function PinnedCardWindow() {
     element.addEventListener("pointercancel", handleUp);
   };
 
+  const adjustZoom = (delta: number) => {
+    setZoom((value) =>
+      Math.min(3, Math.max(0.5, Number((value + delta).toFixed(2)))),
+    );
+  };
+
+  const resetView = () => {
+    setZoom(1);
+    setRotation(0);
+  };
+
+  const addImages = async (files: FileList | null) => {
+    if (!note || !files?.length || adding) return;
+    setAdding(true);
+    try {
+      let updated = note;
+      for (const file of Array.from(files)) {
+        if (!file.type.startsWith("image/")) continue;
+        const encoded = await imageBlobToPng(file);
+        const asset = await api.saveImageAsset(encoded.base64);
+        updated = await api.addBlock(note.id, {
+          blockType: "image",
+          assetId: asset.id,
+        });
+      }
+      setNote(updated);
+      setError("");
+      await emitNotesChanged();
+    } catch (reason) {
+      setError(errorMessage(reason));
+    } finally {
+      setAdding(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
   const takeDown = async () => {
     if (!note || leaving || ignoreClickRef.current) return;
     setLeaving(true);
@@ -258,6 +300,20 @@ export function PinnedCardWindow() {
     }
     try {
       await api.unpinNote(note.id);
+    } catch (reason) {
+      setLeaving(false);
+      setError(errorMessage(reason));
+    }
+  };
+
+  const takeDownAll = async () => {
+    if (leaving) return;
+    setLeaving(true);
+    if (!reduced) {
+      await new Promise((resolve) => window.setTimeout(resolve, 260));
+    }
+    try {
+      await api.unpinAll();
     } catch (reason) {
       setLeaving(false);
       setError(errorMessage(reason));
@@ -304,22 +360,43 @@ export function PinnedCardWindow() {
                       {formatFullDate(note.createdAt)} · {typeLabel(note)}
                     </p>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => void takeDown()}
-                    className="ghost-button focus-ring flex h-6 shrink-0 items-center gap-1 rounded-md px-2 text-[9px]"
-                  >
-                    <PinOff size={9} />
-                    取下
-                  </button>
+                  <div className="flex shrink-0 items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => void takeDown()}
+                      className="ghost-button focus-ring flex h-6 items-center gap-1 rounded-md px-2 text-[9px]"
+                    >
+                      <PinOff size={9} />
+                      取下
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void takeDownAll()}
+                      className="ghost-button focus-ring flex h-6 items-center rounded-md px-1.5 text-[8px] text-muted/75"
+                    >
+                      全部取下
+                    </button>
+                  </div>
                 </header>
 
-                <div className="min-h-0 flex-1 overflow-y-auto px-3.5 pb-4">
-                  <h1 className="font-serif text-[16px] leading-snug text-ink/90">
-                    {note.title || "无标题速记"}
-                  </h1>
+                <div className="min-h-0 flex-1 overflow-auto px-3.5 pb-4">
+                  <div
+                    onWheel={(event) => {
+                      if (!event.ctrlKey) return;
+                      event.preventDefault();
+                      adjustZoom(event.deltaY < 0 ? 0.1 : -0.1);
+                    }}
+                    style={{
+                      transform: `scale(${zoom}) rotate(${rotation}deg)`,
+                      transformOrigin: "center top",
+                      transition: "transform 120ms ease-out",
+                    }}
+                  >
+                    <h1 className="font-serif text-[16px] leading-snug text-ink/90">
+                      {note.title || "无标题速记"}
+                    </h1>
 
-                  <div className="mt-2 space-y-2">
+                    <div className="mt-2 space-y-2">
                     {note.blocks.map((block) => {
                       if (block.blockType === "image") {
                         return block.asset ? (
@@ -382,7 +459,70 @@ export function PinnedCardWindow() {
                         </p>
                       );
                     })}
+                    </div>
                   </div>
+
+                  <footer className="flex shrink-0 items-center justify-between gap-1 border-t border-line/60 px-2.5 py-1.5">
+                    <button
+                      type="button"
+                      disabled={adding}
+                      onClick={() => fileInputRef.current?.click()}
+                      className="focus-ring flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[9px] text-muted/75 transition-colors hover:bg-ink/5 hover:text-ink disabled:opacity-50"
+                    >
+                      <ImagePlus size={11} />
+                      {adding ? "添加中…" : "图片"}
+                    </button>
+                    <div className="flex items-center gap-0.5">
+                      <button
+                        type="button"
+                        title="缩小"
+                        onClick={() => adjustZoom(-0.15)}
+                        className="focus-ring flex size-5 items-center justify-center rounded text-muted/70 transition-colors hover:bg-ink/5 hover:text-ink"
+                      >
+                        <Minus size={11} />
+                      </button>
+                      <button
+                        type="button"
+                        title="放大"
+                        onClick={() => adjustZoom(0.15)}
+                        className="focus-ring flex size-5 items-center justify-center rounded text-muted/70 transition-colors hover:bg-ink/5 hover:text-ink"
+                      >
+                        <Plus size={11} />
+                      </button>
+                      <button
+                        type="button"
+                        title="向左旋转"
+                        onClick={() => setRotation((value) => value - 15)}
+                        className="focus-ring flex size-5 items-center justify-center rounded text-muted/70 transition-colors hover:bg-ink/5 hover:text-ink"
+                      >
+                        <RotateCcw size={11} />
+                      </button>
+                      <button
+                        type="button"
+                        title="向右旋转"
+                        onClick={() => setRotation((value) => value + 15)}
+                        className="focus-ring flex size-5 items-center justify-center rounded text-muted/70 transition-colors hover:bg-ink/5 hover:text-ink"
+                      >
+                        <RotateCw size={11} />
+                      </button>
+                      <button
+                        type="button"
+                        title="重置缩放和旋转"
+                        onClick={resetView}
+                        className="focus-ring flex h-5 items-center justify-center rounded px-1 text-[8px] text-muted/65 transition-colors hover:bg-ink/5 hover:text-ink"
+                      >
+                        1:1
+                      </button>
+                    </div>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      className="hidden"
+                      onChange={(event) => void addImages(event.target.files)}
+                    />
+                  </footer>
                 </div>
               </article>
 

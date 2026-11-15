@@ -137,7 +137,7 @@ export interface PendingImage {
 export interface CaptureDraft {
   text: string;
   mode: CaptureMode;
-  image: PendingImage | null;
+  images: PendingImage[];
 }
 
 export interface AppSettings {

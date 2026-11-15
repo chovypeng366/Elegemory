@@ -51,6 +51,7 @@ pub fn run() {
                 .decorations(false)
                 .transparent(true)
                 .visible(false)
+                .always_on_top(true)
                 .skip_taskbar(true)
                 .shadow(false)
                 .build()
@@ -119,6 +120,7 @@ pub fn run() {
             commands::pin::pin_note_to_top,
             commands::pin::get_pinned_note_ids,
             commands::pin::unpin_note,
+            commands::pin::unpin_all,
             commands::system::show_capture,
             commands::system::hide_capture,
             commands::system::toggle_capture,

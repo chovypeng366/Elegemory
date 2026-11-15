@@ -9,7 +9,6 @@ import {
 } from "lucide-react";
 import { IconButton } from "../../components/IconButton";
 import { LogoMark } from "../../components/LogoMark";
-import { MagneticPin } from "../../components/MagneticPin";
 import { assetSrc } from "../../lib/assets";
 import { handleWindowDrag } from "../../lib/drag";
 import { cn, errorMessage } from "../../lib/utils";
@@ -36,25 +35,32 @@ import type {
 const DRAFT_KEY = "elegemory.capture.draft.v1";
 
 function emptyDraft(): CaptureDraft {
-  return { text: "", mode: "note", image: null };
+  return { text: "", mode: "note", images: [] };
 }
 
 function readDraft(): CaptureDraft {
   try {
     const raw = localStorage.getItem(DRAFT_KEY);
     if (!raw) return emptyDraft();
-    const parsed = JSON.parse(raw) as Partial<CaptureDraft>;
+    const parsed = JSON.parse(raw) as Partial<CaptureDraft> & {
+      image?: PendingImage | null;
+    };
     if (typeof parsed.text !== "string") return emptyDraft();
-    const image =
-      parsed.image &&
-      typeof parsed.image.assetId === "string" &&
-      typeof parsed.image.assetPath === "string"
-        ? (parsed.image as PendingImage)
-        : null;
+    const savedImages = Array.isArray(parsed.images)
+      ? parsed.images
+      : parsed.image
+        ? [parsed.image]
+        : [];
+    const images = savedImages.filter(
+      (item): item is PendingImage =>
+        Boolean(item) &&
+        typeof item.assetId === "string" &&
+        typeof item.assetPath === "string",
+    );
     return {
       text: parsed.text,
       mode: parsed.mode === "todo" ? "todo" : "note",
-      image,
+      images,
     };
   } catch {
     return emptyDraft();
@@ -68,11 +74,12 @@ export function CaptureWindow() {
   const [attaching, setAttaching] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const attachingRef = useRef(false);
   const savingRef = useRef(false);
 
-  const { text, mode, image } = draft;
-  const canSave = Boolean(image) || Boolean(text.trim());
+  const { text, mode, images } = draft;
+  const canSave = images.length > 0 || Boolean(text.trim());
 
   useEffect(() => {
     try {
@@ -83,8 +90,8 @@ export function CaptureWindow() {
   }, [draft]);
 
   useEffect(() => {
-    void resizeCaptureWindow(Boolean(image));
-  }, [image]);
+    void resizeCaptureWindow(images.length > 0);
+  }, [images.length]);
 
   useEffect(() => {
     let disposed = false;
@@ -121,12 +128,14 @@ export function CaptureWindow() {
     let unlisten: (() => void) | undefined;
 
     void onImageDrop((paths) => {
-      const path = paths.find((item) => /\.(png|jpe?g|webp)$/i.test(item));
-      if (!path) {
+      const imagePaths = paths.filter((item) =>
+        /\.(png|jpe?g|webp)$/i.test(item),
+      );
+      if (!imagePaths.length) {
         setError("请拖入 PNG / JPEG / WebP 图片");
         return;
       }
-      void attachPath(path);
+      void attachPaths(imagePaths);
     }).then((fn) => {
       if (disposed) fn();
       else unlisten = fn;
@@ -148,22 +157,26 @@ export function CaptureWindow() {
   }) {
     setDraft((previous) => ({
       ...previous,
-      image: {
-        assetId: asset.id,
-        assetPath: asset.path,
-        width: asset.width,
-        height: asset.height,
-        mimeType: asset.mimeType,
-        sizeBytes: asset.sizeBytes,
-      },
+      images: [
+        ...previous.images,
+        {
+          assetId: asset.id,
+          assetPath: asset.path,
+          width: asset.width,
+          height: asset.height,
+          mimeType: asset.mimeType,
+          sizeBytes: asset.sizeBytes,
+        },
+      ],
     }));
     setError(null);
     requestAnimationFrame(() => textareaRef.current?.focus());
   }
 
-  async function attachFile(file: File) {
-    if (attachingRef.current) return;
-    if (!file.type.startsWith("image/")) {
+  async function attachFiles(files: File[]) {
+    if (attachingRef.current || files.length === 0) return;
+    const imageFiles = files.filter((file) => file.type.startsWith("image/"));
+    if (imageFiles.length === 0) {
       setError("只能粘贴 PNG / JPEG 等图片文件");
       return;
     }
@@ -171,9 +184,11 @@ export function CaptureWindow() {
     setAttaching(true);
     setError(null);
     try {
-      const encoded = await imageBlobToPng(file);
-      const asset = await api.saveImageAsset(encoded.base64);
-      applyImage(asset);
+      for (const file of imageFiles) {
+        const encoded = await imageBlobToPng(file);
+        const asset = await api.saveImageAsset(encoded.base64);
+        applyImage(asset);
+      }
     } catch (cause) {
       setError(errorMessage(cause));
     } finally {
@@ -182,14 +197,16 @@ export function CaptureWindow() {
     }
   }
 
-  async function attachPath(path: string) {
-    if (attachingRef.current) return;
+  async function attachPaths(paths: string[]) {
+    if (attachingRef.current || paths.length === 0) return;
     attachingRef.current = true;
     setAttaching(true);
     setError(null);
     try {
-      const asset = await api.importImagePath(path);
-      applyImage(asset);
+      for (const path of paths) {
+        const asset = await api.importImagePath(path);
+        applyImage(asset);
+      }
     } catch (cause) {
       setError(errorMessage(cause));
     } finally {
@@ -219,6 +236,13 @@ export function CaptureWindow() {
     }
   }
 
+  function removeImage(assetId: string) {
+    setDraft((previous) => ({
+      ...previous,
+      images: previous.images.filter((item) => item.assetId !== assetId),
+    }));
+  }
+
   async function handleSave() {
     if (savingRef.current || saved || !canSave) return;
     savingRef.current = true;
@@ -228,9 +252,9 @@ export function CaptureWindow() {
     try {
       const blocks: NewBlockInput[] = [];
 
-      if (image) {
+      images.forEach((image) => {
         blocks.push({ blockType: "image", assetId: image.assetId });
-      }
+      });
 
       if (mode === "todo") {
         const lines = text
@@ -275,13 +299,13 @@ export function CaptureWindow() {
 
   function handlePaste(event: React.ClipboardEvent<HTMLDivElement>) {
     const items = Array.from(event.clipboardData?.items ?? []);
-    const imageItem = items.find(
-      (item) => item.kind === "file" && item.type.startsWith("image/"),
-    );
-    if (!imageItem) return;
+    const files = items
+      .filter((item) => item.kind === "file" && item.type.startsWith("image/"))
+      .map((item) => item.getAsFile())
+      .filter((file): file is File => Boolean(file));
+    if (!files.length) return;
     event.preventDefault();
-    const file = imageItem.getAsFile();
-    if (file) void attachFile(file);
+    void attachFiles(files);
   }
 
   function handleTextKeyDown(event: React.KeyboardEvent<HTMLTextAreaElement>) {
@@ -312,8 +336,7 @@ export function CaptureWindow() {
       onDragOver={(event) => event.preventDefault()}
       onDrop={(event) => {
         event.preventDefault();
-        const file = event.dataTransfer.files?.[0];
-        if (file) void attachFile(file);
+        void attachFiles(Array.from(event.dataTransfer.files ?? []));
       }}
     >
       <div className="capture-shell surface-grain relative flex min-h-0 w-full flex-col overflow-hidden rounded-[20px] border border-ink/10">
@@ -365,31 +388,48 @@ export function CaptureWindow() {
         </header>
 
         <div className="relative z-10 flex min-h-0 flex-1 flex-col px-4 pb-1">
-          {image && (
-            <div className="relative mt-0.5 shrink-0 rounded-xl border border-line/70 bg-photo p-1.5 shadow-[0_8px_18px_-12px_rgba(64,56,47,0.4)]">
-              <MagneticPin
-                key={image.assetId}
-                className="absolute left-1/2 top-[-10px] z-10 -translate-x-1/2"
-                delay={0.08}
-              />
-              <img
-                src={assetSrc(image.assetPath)}
-                alt="待保存的图片"
-                draggable={false}
-                className="max-h-[200px] w-full rounded-lg bg-canvas-deep/40 object-contain"
-              />
-              <div className="flex items-center justify-between px-1.5 pb-0.5 pt-1.5">
-                <span className="text-[9.5px] tracking-[0.04em] text-muted/60">
-                  {image.width} × {image.height} · {image.mimeType.split("/")[1]?.toUpperCase() ?? "PNG"}
+          {images.length > 0 && (
+            <div className="mt-0.5 shrink-0">
+              <div className="mb-1.5 flex items-center justify-between px-1">
+                <span className="text-[9px] uppercase tracking-[0.16em] text-muted/55">
+                  已添加 {images.length} 张图片
                 </span>
-                <button
-                  type="button"
-                  onClick={() => setDraft((previous) => ({ ...previous, image: null }))}
-                  className="focus-ring flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[9.5px] text-muted/65 transition-colors hover:bg-ink/5 hover:text-ink"
-                >
-                  <X size={9} />
-                  移除
-                </button>
+                <span className="text-[9px] text-muted/45">可继续粘贴或拖入</span>
+              </div>
+              <div
+                className={cn(
+                  "grid max-h-[190px] gap-2 overflow-y-auto pr-1",
+                  images.length === 1 ? "grid-cols-1" : "grid-cols-2",
+                )}
+              >
+                {images.map((item) => (
+                  <div
+                    key={item.assetId}
+                    className="group relative rounded-xl border border-line/70 bg-photo p-1.5 shadow-[0_8px_18px_-14px_rgba(64,56,47,0.4)]"
+                  >
+                    <button
+                      type="button"
+                      aria-label="移除图片"
+                      onClick={() => removeImage(item.assetId)}
+                      className="focus-ring absolute right-2.5 top-2.5 z-10 flex size-5 items-center justify-center rounded-full bg-photo/90 text-muted/70 shadow-sm transition-colors hover:bg-white hover:text-ink"
+                    >
+                      <X size={10} />
+                    </button>
+                    <img
+                      src={assetSrc(item.assetPath)}
+                      alt="待保存的图片"
+                      draggable={false}
+                      className={cn(
+                        "w-full rounded-lg bg-canvas-deep/40 object-contain",
+                        images.length === 1 ? "max-h-[180px]" : "h-24",
+                      )}
+                    />
+                    <div className="truncate px-0.5 pb-0.5 pt-1 text-[8.5px] tracking-[0.04em] text-muted/55">
+                      {item.width} × {item.height} ·{" "}
+                      {item.mimeType.split("/")[1]?.toUpperCase() ?? "PNG"}
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           )}
@@ -406,15 +446,15 @@ export function CaptureWindow() {
               readOnly={saved}
               spellCheck={false}
               placeholder={
-                image
-                  ? "给这张图加一句说明…"
+                images.length > 0
+                  ? "给这些图片加一句说明…"
                   : mode === "todo"
                     ? "每行写一件事，Ctrl + Enter 收好"
                     : "随手记下点什么…"
               }
               className={cn(
                 "textarea-quiet w-full flex-1 px-1 text-[14px] leading-7 text-ink placeholder:text-muted/40",
-                image ? "mt-2 min-h-[62px]" : "min-h-[88px]",
+                images.length > 0 ? "mt-2 min-h-[62px]" : "min-h-[88px]",
               )}
             />
 
@@ -448,6 +488,26 @@ export function CaptureWindow() {
               )}
               {attaching ? "读取中" : "粘贴图片"}
             </button>
+            <button
+              type="button"
+              disabled={attaching}
+              onClick={() => fileInputRef.current?.click()}
+              className="ghost-button focus-ring flex h-8 shrink-0 items-center gap-1.5 rounded-lg px-2.5 text-[10.5px] disabled:opacity-60"
+            >
+              <ImagePlus size={12} />
+              选择图片
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={(event) => {
+                void attachFiles(Array.from(event.target.files ?? []));
+                event.target.value = "";
+              }}
+            />
           </div>
 
           <div className="flex shrink-0 items-center gap-2">

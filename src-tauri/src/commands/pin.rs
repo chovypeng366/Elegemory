@@ -58,6 +58,7 @@ fn place_line(app: &AppHandle, monitor: &Monitor) -> Result<(), String> {
     if !visible {
         line.show()
             .map_err(|error| format!("显示悬挂细线失败：{error}"))?;
+        let _ = line.set_always_on_top(true);
         let _ = line.set_ignore_cursor_events(true);
     }
     Ok(())
@@ -112,6 +113,7 @@ pub async fn pin_note_to_top(
         .decorations(false)
         .transparent(true)
         .visible(false)
+        .always_on_top(true)
         .skip_taskbar(true)
         .shadow(false)
         .build()
@@ -123,6 +125,7 @@ pub async fn pin_note_to_top(
     place_line(&app, &monitor)?;
     card.show()
         .map_err(|error| format!("显示悬挂卡片失败：{error}"))?;
+    let _ = card.set_always_on_top(true);
     if let Some(main) = app.get_webview_window("main") {
         let _ = main.set_focus();
     }
@@ -166,13 +169,26 @@ pub async fn unpin_note(
         }
     }
 
-    if let Some(main) = app.get_webview_window("main") {
-        let _ = main.show();
-        let _ = main.unminimize();
-        let _ = main.set_focus();
-    }
-
-    app.emit("unpin-note", note_id)
-        .map_err(|error| format!("返回主窗口失败：{error}"))?;
     Ok(remaining)
+}
+
+#[tauri::command]
+pub async fn unpin_all(
+    app: AppHandle,
+    state: State<'_, PinnedNote>,
+) -> Result<(), String> {
+    let note_ids = {
+        let mut pinned = lock_pinned(&state);
+        pinned.drain(..).collect::<Vec<_>>()
+    };
+
+    for note_id in note_ids {
+        if let Some(card) = app.get_webview_window(&card_label(&note_id)) {
+            let _ = card.close();
+        }
+    }
+    if let Some(line) = app.get_webview_window(LINE_LABEL) {
+        let _ = line.hide();
+    }
+    Ok(())
 }
