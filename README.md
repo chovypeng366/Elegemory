@@ -8,14 +8,14 @@ Elegemory 是一款以剪贴板为入口、以时间轴为组织方式的 Window
 
 ## 下载
 
-最新版本：**v0.6.8** · Windows 10 / 11 x64
+最新版本：**v0.6.10** · Windows 10 / 11 x64
 
 | 文件 | 说明 |
 | --- | --- |
-| [elegemory.exe](https://github.com/chovypeng366/Elegemory/releases/download/v0.6.8/elegemory.exe) | 便携版，下载后直接运行，无需安装 |
-| [Elegemory_0.6.8_x64-setup.exe](https://github.com/chovypeng366/Elegemory/releases/download/v0.6.8/Elegemory_0.6.8_x64-setup.exe) | NSIS 安装包 |
-| [Elegemory_0.6.8_x64_en-US.msi](https://github.com/chovypeng366/Elegemory/releases/download/v0.6.8/Elegemory_0.6.8_x64_en-US.msi) | MSI 安装包 |
-| [SHA256SUMS.txt](https://github.com/chovypeng366/Elegemory/releases/download/v0.6.8/SHA256SUMS.txt) | 文件校验值 |
+| [elegemory.exe](https://github.com/chovypeng366/Elegemory/releases/download/v0.6.10/elegemory.exe) | 便携版，下载后直接运行，无需安装 |
+| [Elegemory_0.6.10_x64-setup.exe](https://github.com/chovypeng366/Elegemory/releases/download/v0.6.10/Elegemory_0.6.10_x64-setup.exe) | NSIS 安装包 |
+| [Elegemory_0.6.10_x64_en-US.msi](https://github.com/chovypeng366/Elegemory/releases/download/v0.6.10/Elegemory_0.6.10_x64_en-US.msi) | MSI 安装包 |
+| [SHA256SUMS.txt](https://github.com/chovypeng366/Elegemory/releases/download/v0.6.10/SHA256SUMS.txt) | 文件校验值 |
 
 也可以访问 [Releases](https://github.com/chovypeng366/Elegemory/releases/latest) 查看全部版本与更新说明。
 
@@ -33,7 +33,7 @@ Elegemory 是一款以剪贴板为入口、以时间轴为组织方式的 Window
 - 待办模式：每行一件事，`Ctrl + Enter` 收好。
 - 支持一次选择、粘贴或拖入多张截图，一张速记里可以放入多张图片。
 - 图片与说明文字可以组成同一条图文记录。
-- 保存后打开记录详情，可以用缩放、旋转按钮调整图片与文字，也可以按住 Ctrl 滚动滚轮缩放。
+- 保存后打开记录详情，每张图片右下角都有缩小、放大、左右旋转和 `1:1` 重置按钮，也可以按住 Ctrl 滚动滚轮缩放图片。
 - `Esc` 收起窗口，输入内容和已附加图片会保存为草稿，下次打开继续。
 - 保存后白板自动刷新，不需要手动同步。
 
@@ -87,7 +87,7 @@ Elegemory 是一款以剪贴板为入口、以时间轴为组织方式的 Window
 - 悬挂卡片始终位于系统窗口最上层；主窗口仍可正常最小化到任务栏或托盘。
 - 一个悬挂窗口可以继续添加多张图片，不再局限于一张；图片与文字都支持放大、缩小和旋转，也可以按住 Ctrl 滚动滚轮缩放。
 - 按住某张卡片的顶部信息区左右拖动，只会移动这一张卡片，其他卡片留在原位。
-- 卡片从上方落下并轻轻摆动，之后偶尔被一阵微风带动；悬停时轻微抬起，阴影和边缘高光随主题变化。
+- 卡片从上方落下并轻轻回弹，之后保持稳定，避免晃动时文字发虚；阴影和边缘高光随主题变化。
 - 每条卡片默认保持小巧；可以单独拖动右边缘、下边缘或右下角调整这条卡片的大小，图片也会跟着卡片一起放大或缩小，并记住上次尺寸。
 - 主窗口收起到托盘后，悬挂的笔记仍然保留。
 - 点击某张卡片的「取下」会直接让它落下，不再跳回原笔记；卡片顶部还提供「全部取下」，可以一次收起所有悬挂内容。

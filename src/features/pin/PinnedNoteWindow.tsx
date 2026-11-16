@@ -42,7 +42,6 @@ export function PinnedCardWindow() {
   const [note, setNote] = useState<Note | null>(null);
   const [error, setError] = useState("");
   const [leaving, setLeaving] = useState(false);
-  const [sway, setSway] = useState(0);
   const reduced = useReducedMotion();
   const ignoreClickRef = useRef(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -96,30 +95,6 @@ export function PinnedCardWindow() {
       // Size preference is best-effort.
     }
   }, []);
-
-  useEffect(() => {
-    if (reduced) {
-      setSway(0);
-      return;
-    }
-    let cancelled = false;
-    let timer = 0;
-    const breeze = () => {
-      if (cancelled || document.hidden) return;
-      const angle =
-        (0.7 + Math.random() * 1.5) * (Math.random() > 0.5 ? 1 : -1);
-      setSway(angle);
-      window.setTimeout(() => {
-        if (!cancelled) setSway(0);
-      }, 520);
-      timer = window.setTimeout(breeze, 4500 + Math.random() * 4500);
-    };
-    timer = window.setTimeout(breeze, 3000 + Math.random() * 3500);
-    return () => {
-      cancelled = true;
-      window.clearTimeout(timer);
-    };
-  }, [reduced]);
 
   const startResize = (event: React.PointerEvent<HTMLDivElement>, axis: ResizeAxis) => {
     if (!isTauri() || event.button !== 0) return;
@@ -324,12 +299,7 @@ export function PinnedCardWindow() {
     <div className="relative h-full w-full overflow-hidden">
       <div className="flex h-full w-full flex-col items-center pt-2">
         <Clothespin />
-        <motion.div
-          animate={{ rotate: sway }}
-          transition={{ type: "spring", stiffness: 34, damping: 3.2 }}
-          style={{ transformOrigin: "50% 0%" }}
-          className="relative flex w-[calc(100vw-32px)] flex-col items-center"
-        >
+        <div className="relative flex w-[calc(100vw-32px)] flex-col items-center">
           {note && (
             <motion.div
               initial={reduced ? false : { y: -24, rotate: 8, opacity: 0 }}
@@ -338,7 +308,6 @@ export function PinnedCardWindow() {
                   ? { y: 220, rotate: -6, opacity: 0 }
                   : { y: 0, rotate: 0, opacity: 1 }
               }
-              whileHover={reduced || leaving ? undefined : { scale: 1.006 }}
               transition={
                 leaving
                   ? { duration: 0.32, ease: "easeIn" }
@@ -566,7 +535,7 @@ export function PinnedCardWindow() {
               </div>
             </motion.div>
           )}
-        </motion.div>
+        </div>
       </div>
 
       {!note && !error && (

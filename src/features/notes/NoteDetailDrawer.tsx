@@ -124,24 +124,6 @@ export function NoteDetailDrawer() {
   const refreshAi = useAiStore((state) => state.refresh);
   const [aiBusy, setAiBusy] = useState<"title" | "summary" | "todos" | null>(null);
   const [aiSummary, setAiSummary] = useState("");
-  const [contentZoom, setContentZoom] = useState(1);
-  const [contentRotation, setContentRotation] = useState(0);
-
-  useEffect(() => {
-    setContentZoom(1);
-    setContentRotation(0);
-  }, [note?.id]);
-
-  const adjustContentZoom = (delta: number) => {
-    setContentZoom((value) =>
-      Math.min(3, Math.max(0.5, Number((value + delta).toFixed(2)))),
-    );
-  };
-
-  const resetContentView = () => {
-    setContentZoom(1);
-    setContentRotation(0);
-  };
 
   useEffect(() => {
     if (note) void refreshAi();
@@ -486,7 +468,7 @@ export function NoteDetailDrawer() {
               </div>
             </header>
 
-            <div key={note.id} className="min-h-0 flex-1 overflow-auto px-6 pb-8 pt-1">
+            <div key={note.id} className="min-h-0 flex-1 overflow-y-auto px-6 pb-8 pt-1">
               {archived ? (
                 <h2 className="font-serif text-[23px] leading-snug text-ink/90">
                   {note.title || "无标题速记"}
@@ -560,19 +542,7 @@ export function NoteDetailDrawer() {
                 </div>
               )}
 
-              <div
-                className="mt-5 space-y-2.5"
-                onWheel={(event) => {
-                  if (!event.ctrlKey) return;
-                  event.preventDefault();
-                  adjustContentZoom(event.deltaY < 0 ? 0.1 : -0.1);
-                }}
-                style={{
-                  transform: `scale(${contentZoom}) rotate(${contentRotation}deg)`,
-                  transformOrigin: "center top",
-                  transition: "transform 120ms ease-out",
-                }}
-              >
+              <div className="mt-5 space-y-2.5">
                 {note.blocks.map((block) =>
                   block.blockType === "image" ? (
                     <ImageBlock key={block.id} block={block} />
@@ -647,48 +617,6 @@ export function NoteDetailDrawer() {
                     修改会自动保存
                   </span>
                   <div className="flex items-center gap-1.5">
-                    <div className="flex items-center rounded-lg border border-line/60 px-0.5">
-                      <button
-                        type="button"
-                        title="缩小"
-                        onClick={() => adjustContentZoom(-0.15)}
-                        className="focus-ring flex size-7 items-center justify-center rounded-md text-muted/70 transition-colors hover:bg-ink/5 hover:text-ink"
-                      >
-                        <Minus size={12} />
-                      </button>
-                      <button
-                        type="button"
-                        title="放大"
-                        onClick={() => adjustContentZoom(0.15)}
-                        className="focus-ring flex size-7 items-center justify-center rounded-md text-muted/70 transition-colors hover:bg-ink/5 hover:text-ink"
-                      >
-                        <Plus size={12} />
-                      </button>
-                      <button
-                        type="button"
-                        title="向左旋转"
-                        onClick={() => setContentRotation((value) => value - 15)}
-                        className="focus-ring flex size-7 items-center justify-center rounded-md text-muted/70 transition-colors hover:bg-ink/5 hover:text-ink"
-                      >
-                        <RotateCcw size={12} />
-                      </button>
-                      <button
-                        type="button"
-                        title="向右旋转"
-                        onClick={() => setContentRotation((value) => value + 15)}
-                        className="focus-ring flex size-7 items-center justify-center rounded-md text-muted/70 transition-colors hover:bg-ink/5 hover:text-ink"
-                      >
-                        <RotateCw size={12} />
-                      </button>
-                      <button
-                        type="button"
-                        title="重置缩放和旋转"
-                        onClick={resetContentView}
-                        className="focus-ring flex h-7 items-center rounded-md px-1.5 text-[9px] text-muted/65 transition-colors hover:bg-ink/5 hover:text-ink"
-                      >
-                        1:1
-                      </button>
-                    </div>
                     <button
                       type="button"
                       onClick={() => void handleCopyText()}
@@ -768,6 +696,14 @@ function AiButton({
 
 function ImageBlock({ block }: { block: NoteBlock }) {
   const pushToast = useUiStore((state) => state.pushToast);
+  const [zoom, setZoom] = useState(1);
+  const [rotation, setRotation] = useState(0);
+
+  const adjustZoom = (delta: number) => {
+    setZoom((value) =>
+      Math.min(3, Math.max(0.5, Number((value + delta).toFixed(2)))),
+    );
+  };
 
   if (!block.asset) {
     return (
@@ -779,12 +715,74 @@ function ImageBlock({ block }: { block: NoteBlock }) {
 
   return (
     <div className="rounded-xl border border-line/70 bg-photo p-2">
-      <img
-        src={assetSrc(block.asset.path)}
-        alt={block.asset.relativePath || "记录图片"}
-        draggable={false}
-        className="max-h-[320px] w-full rounded-lg bg-canvas-deep/40 object-contain"
-      />
+      <div
+        className="relative max-h-[360px] overflow-auto rounded-lg bg-canvas-deep/40"
+        onWheel={(event) => {
+          if (!event.ctrlKey) return;
+          event.preventDefault();
+          adjustZoom(event.deltaY < 0 ? 0.1 : -0.1);
+        }}
+      >
+        <img
+          src={assetSrc(block.asset.path)}
+          alt={block.asset.relativePath || "记录图片"}
+          draggable={false}
+          style={
+            {
+              zoom: String(zoom),
+              transform: `rotate(${rotation}deg)`,
+              transformOrigin: "center center",
+              transition: "transform 120ms ease-out",
+            } as React.CSSProperties
+          }
+          className="max-h-[320px] w-full rounded-lg object-contain"
+        />
+        <div className="absolute bottom-2 right-2 z-10 flex items-center gap-0.5 rounded-lg border border-line/70 bg-photo/95 p-0.5 shadow-sm backdrop-blur-sm">
+          <button
+            type="button"
+            title="缩小图片"
+            onClick={() => adjustZoom(-0.15)}
+            className="focus-ring flex size-6 items-center justify-center rounded-md text-muted/75 transition-colors hover:bg-ink/5 hover:text-ink"
+          >
+            <Minus size={11} />
+          </button>
+          <button
+            type="button"
+            title="放大图片"
+            onClick={() => adjustZoom(0.15)}
+            className="focus-ring flex size-6 items-center justify-center rounded-md text-muted/75 transition-colors hover:bg-ink/5 hover:text-ink"
+          >
+            <Plus size={11} />
+          </button>
+          <button
+            type="button"
+            title="向左旋转图片"
+            onClick={() => setRotation((value) => value - 15)}
+            className="focus-ring flex size-6 items-center justify-center rounded-md text-muted/75 transition-colors hover:bg-ink/5 hover:text-ink"
+          >
+            <RotateCcw size={11} />
+          </button>
+          <button
+            type="button"
+            title="向右旋转图片"
+            onClick={() => setRotation((value) => value + 15)}
+            className="focus-ring flex size-6 items-center justify-center rounded-md text-muted/75 transition-colors hover:bg-ink/5 hover:text-ink"
+          >
+            <RotateCw size={11} />
+          </button>
+          <button
+            type="button"
+            title="重置缩放和旋转"
+            onClick={() => {
+              setZoom(1);
+              setRotation(0);
+            }}
+            className="focus-ring flex h-6 items-center justify-center rounded-md px-1 text-[8px] text-muted/70 transition-colors hover:bg-ink/5 hover:text-ink"
+          >
+            1:1
+          </button>
+        </div>
+      </div>
       <div className="flex items-center justify-between px-1.5 pb-0.5 pt-2">
         <span className="text-[9.5px] tracking-[0.04em] text-muted/55">
           {block.asset.width} × {block.asset.height} · PNG
